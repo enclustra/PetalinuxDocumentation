@@ -1,15 +1,16 @@
 # BSP usage documentation
 
-1. [Prerequisites](#prerequisites)
-2. [Petalinux project creation and build with BSP file](#petalinux-project-creation-and-build-with-bsp-file)
-3. [Updating the hardware file used by the Petalinux project](#updating-the-hardware-file-used-by-the-petalinux-project)
-4. [Accelerating Petalinux builds](#accelerating-petalinux-builds)
-5. [Changes to Petalinux default configurations](#changes-to-petalinux-default-configurations)
-    1. [Kernel changes](#kernel-changes)
-    2. [U-boot changes](#u-boot-changes)
-    3. [Device-tree changes](#device-tree-changes)
-    4. [Root file system changes](#root-file-system-changes)
-6. [CPU frequency](#cpu-frequency)
+- [BSP usage documentation](#bsp-usage-documentation)
+  - [Prerequisites](#prerequisites)
+  - [Petalinux project creation and build with BSP file](#petalinux-project-creation-and-build-with-bsp-file)
+  - [Updating the hardware file (.xsa) used by the Petalinux project](#updating-the-hardware-file-xsa-used-by-the-petalinux-project)
+  - [Accelerating Petalinux builds](#accelerating-petalinux-builds)
+  - [Changes to Petalinux default configurations](#changes-to-petalinux-default-configurations)
+    - [Kernel changes](#kernel-changes)
+    - [U-boot changes](#u-boot-changes)
+    - [Device tree changes](#device-tree-changes)
+    - [Root file system changes](#root-file-system-changes)
+  - [CPU frequency](#cpu-frequency)
 
 ## Prerequisites
 
@@ -18,7 +19,7 @@
 
 ## Petalinux project creation and build with BSP file
 
-The provided **BSP** file follows the naming convention of `${MODULE_NAME}_${BASEBOARD_NAME}_${BOOT_MODE}.bsp`. Using the Mercury ME-XU5-2EG-1I-D11E as an example in combination with the PE1 baseboard and SD card boot mode the file will have the name: `ME-XU5-2EG-1I-D11E_PE1_SD.bsp`
+The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_NAME}_${BASEBOARD_NAME}_${BOOT_MODE}.bsp`. Using the Mercury ME-XU5-2EG-1I-D11E as an example in combination with the PE1 baseboard and SD card boot mode the file will have the name: `Petalinux_ME-XU5-2EG-1I-D11E_PE1_SD.bsp`
 
 - Open a console and source the Petalinux environment script: `source /<path-to-petalinux-installation-dir>/settings.sh`
 
@@ -123,30 +124,30 @@ Further changes:
 The following patches are added to the default Petalinux u-boot:
 - **eeprom.patch**
 
- 1. Same for [SoC](patches/uboot/SoC/eeprom.patch) and  [MPSoC](patches/uboot/MPSoC/eeprom.patch)
+ 1. Same for [SoC](../patches/uboot/SoC/eeprom.patch) and  [MPSoC](../patches/uboot/MPSoC/eeprom.patch)
  2. Add functionality to read the mac-address from the atsha204a secure-eeprom
  3. Prevent atsha204a-i2c from timing out ([origin](https://github.com/enclustra-bsp/xilinx-uboot/commit/b41dce14ba2c7adff6027cf5fbd2121bc02ed1e0))
 
 - **emmc.patch**
 
- 1. Same for [SoC](patches/uboot/SoC/emmc.patch) and [MPSoC](patches/uboot/MPSoC/emmc.patch)
+ 1. Same for [SoC](../patches/uboot/SoC/emmc.patch) and [MPSoC](../patches/uboot/MPSoC/emmc.patch)
  2. Change the initialization flow for e/MMC cards ([origin](https://github.com/enclustra-bsp/xilinx-uboot/commit/cafd52079faed3db66809c3244a393995b14d5ce))
  3. Support card detect via gpio
  4. Get "max-frequency" from the device-tree
 
 - **phy_delay.patch**
 
- 1. Same for [SoC](patches/uboot/SoC/phy_delay.patch) and [MPSoC](patches/uboot/MPSoC/phy_delay.patch)
+ 1. Same for [SoC](../patches/uboot/SoC/phy_delay.patch) and [MPSoC](../patches/uboot/MPSoC/phy_delay.patch)
  2. When checking whether the value is too large, it now differentiates whether the values are 4 or 5 bits wide
 
-- **[zynq_board.patch](patches/uboot/SoC/zynq_board.patch)**
+- **[zynq_board.patch](../patches/uboot/SoC/zynq_board.patch)**
 
  1. Read and set mac-address
  2. U-Boot command to read mac-address
  3. Functionality / U-Boot command to swich MIO pins between NAND and QSPI
  4. MGT routing capabilities for cosmos
 
-- **[zynqmp_board.patch](patches/uboot/MPSoC/zynqmp_board.patch)**
+- **[zynqmp_board.patch](../patches/uboot/MPSoC/zynqmp_board.patch)**
 
  1. Read and set mac-address
  2. U-Boot command to read mac-address
@@ -174,4 +175,4 @@ Depending on the device and its speed grade, a different maximum CPU frequency r
 [    5.323088] cpu cpu0: dev_pm_opp_set_rate: failed to find current OPP for freq 1333333320 (-34)
 [    5.340367] cpu cpu0: dev_pm_opp_set_rate: failed to find current OPP for freq 1333333320 (-34)
 ```
-For more information about [CPU frequency scaling](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841831/CPU+frequency+scaling).
+For more information about CPU frequency scaling please visit the [Xilinx wiki entry](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841831/CPU+frequency+scaling).
