@@ -1,0 +1,114 @@
+--- u-boot-xlnx/drivers/mmc/mmc.c
++++ xilinx-uboot/drivers/mmc/mmc.c
+@@ -2882,7 +2882,6 @@
+ {
+ 	int err = 0;
+ 
+-	mmc->init_in_progress = 0;
+ 	if (mmc->op_cond_pending)
+ 		err = mmc_complete_op_cond(mmc);
+ 
+@@ -2892,6 +2891,8 @@
+ 		mmc->has_init = 0;
+ 	else
+ 		mmc->has_init = 1;
++		
++	mmc->init_in_progress = 0;
+ 	return err;
+ }
+ 
+--- u-boot-xlnx/drivers/mmc/sdhci.c
++++ xilinx-uboot/drivers/mmc/sdhci.c
+@@ -269,6 +269,13 @@
+ 	/* Timeout unit - ms */
+ 	static unsigned int cmd_timeout = SDHCI_CMD_DEFAULT_TIMEOUT;
+ 
++	/* Some eMMC cards failes to initialize when we issue CMD8 or
++		CMD55 before the end of mmc_start_init function */
++	if ((host->quirks & SDHCI_QUIRK_EMMC_INIT) && (!mmc->has_init && !mmc->init_in_progress)){
++		if ((cmd->cmdidx == SD_CMD_SEND_IF_COND) || (cmd->cmdidx == MMC_CMD_APP_CMD))
++			return -ETIMEDOUT;
++	}
++
+ 	mask = SDHCI_CMD_INHIBIT | SDHCI_DATA_INHIBIT;
+ 
+ 	/* We shouldn't wait for data inihibit for stop commands, even
+@@ -830,7 +837,7 @@
+ 	if (host->quirks & SDHCI_QUIRK_BROKEN_VOLTAGE)
+ 		cfg->voltages |= host->voltages;
+ 
+-	cfg->host_caps |= MMC_MODE_HS | MMC_MODE_HS_52MHz | MMC_MODE_4BIT;
++	cfg->host_caps |= MMC_MODE_HS | MMC_MODE_HS_52MHz | MMC_MODE_8BIT | MMC_MODE_4BIT;
+ 
+ 	/* Since Host Controller Version3.0 */
+ 	if (SDHCI_GET_VERSION(host) >= SDHCI_SPEC_300) {
+--- u-boot-xlnx/drivers/mmc/zynq_sdhci.c
++++ xilinx-uboot/drivers/mmc/zynq_sdhci.c
+@@ -42,6 +42,8 @@
+ 	u8 deviceid;
+ 	u8 bank;
+ 	u8 no_1p8;
++	u8 is_emmc;
++	struct gpio_desc *cd_gpio;
+ };
+ 
+ #if defined(CONFIG_ARCH_ZYNQMP) || defined(CONFIG_ARCH_VERSAL)
+@@ -559,7 +561,16 @@
+ 	unsigned long clock;
+ 	int ret;
+ 
+-	host = priv->host;
++        host = priv->host;
++
++	if(!(priv->cd_gpio)){
++		if (gpio_get_number(priv->cd_gpio) >= 0) {
++			if (dm_gpio_is_valid(priv->cd_gpio)) {
++				if(!dm_gpio_get_value(priv->cd_gpio))
++					return -ENXIO;
++			}
++		}
++        }
+ 
+ 	ret = clk_get_by_index(dev, 0, &clk);
+ 	if (ret < 0) {
+@@ -588,10 +599,14 @@
+ 	host->quirks |= SDHCI_QUIRK_BROKEN_HISPD_MODE;
+ #endif
+ 
++	if (priv->is_emmc)
++		host->quirks |= SDHCI_QUIRK_EMMC_INIT;
++
++	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
+ 	if (priv->no_1p8)
+ 		host->quirks |= SDHCI_QUIRK_NO_1_8_V;
+ 
+-	plat->cfg.f_max = CONFIG_ZYNQ_SDHCI_MAX_FREQ;
++	plat->cfg.f_max = dev_read_u32_default(dev, "max-frequency", CONFIG_ZYNQ_SDHCI_MAX_FREQ);
+ 
+ 	ret = mmc_of_parse(dev, &plat->cfg);
+ 	if (ret)
+@@ -622,6 +637,14 @@
+ 
+ 	priv->host->name = dev->name;
+ 
++	if (fdt_get_property(gd->fdt_blob, dev_of_offset(dev), "is_emmc", NULL))
++		priv->is_emmc = 1;
++	else
++		priv->is_emmc = 0;
++
++	gpio_request_by_name(dev, "cd-gpios", 0, priv->cd_gpio,
++                                  GPIOD_IS_IN);
++
+ #if defined(CONFIG_ARCH_ZYNQMP) || defined(CONFIG_ARCH_VERSAL)
+ 	priv->host->ops = &arasan_ops;
+ 	arasan_dt_parse_clk_phases(dev);
+--- u-boot-xlnx/include/sdhci.h
++++ xilinx-uboot/include/sdhci.h
+@@ -244,6 +244,7 @@
+ #define SDHCI_QUIRK_USE_WIDE8		(1 << 8)
+ #define SDHCI_QUIRK_NO_1_8_V		(1 << 9)
+ 
++#define SDHCI_QUIRK_EMMC_INIT		(1 << 11)
+ /* to make gcc happy */
+ struct sdhci_host;
+ 

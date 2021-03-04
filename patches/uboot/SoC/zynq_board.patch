@@ -1,0 +1,562 @@
+--- u-boot-xlnx/common/board_r.c
++++ xilinx-uboot/common/board_r.c
+@@ -805,6 +805,12 @@
+ #ifdef CONFIG_BOARD_LATE_INIT
+ 	board_late_init,
+ #endif
++#ifdef CONFIG_ENCLUSTRA_QSPI_FLASHMAP
++	enclustra_board,
++#endif
++#ifdef CONFIG_ENCLUSTRA_EEPROM_MAC
++	enclustra_common,
++#endif
+ #if defined(CONFIG_SCSI) && !defined(CONFIG_DM_SCSI)
+ 	INIT_FUNC_WATCHDOG_RESET
+ 	initr_scsi,
+--- u-boot-xlnx/board/xilinx/common/enclustra.c
++++ xilinx-uboot/board/xilinx/common/enclustra.c
+@@ -0,0 +1,94 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2020 Enclustra GmbH
++ */
++
++#include <common.h>
++#include <env.h>
++#include <enclustra/eeprom-mac.h>
++
++#define ENCLUSTRA_MAC               0xF7B020
++
++/* Default MAC address */
++#define ENCLUSTRA_ETHADDR_DEFAULT "00:0A:35:01:02:03"
++#define ENCLUSTRA_ETH1ADDR_DEFAULT "00:0A:35:01:02:04"
++
++static struct eeprom_mem eeproms[] = {
++	{ .mac_reader = atsha204_get_mac },
++	{ .mac_reader = ds28_get_mac }
++};
++
++int enclustra_common(void)
++{
++	int i;
++	u8 hwaddr[6] = {0, 0, 0, 0, 0, 0};
++	u32 hwaddr_h;
++	char hwaddr_str[18];
++	bool hwaddr_set = false;
++	
++#if defined(CONFIG_ENCLUSTRA_EEPROM_MAC)
++
++	if (!env_get("ethaddr")) {
++		for (i = 0; i < ARRAY_SIZE(eeproms); i++) {
++			if (eeproms[i].mac_reader(hwaddr))
++				continue;
++
++			/* Workaround for incorrect MAC address caused by
++			 * flashing to EEPROM addresses like 20:B0:F0:XX:XX:XX
++			 * instead of 20:B0:F7:XX:XX:XX
++			 */
++			hwaddr[2] = (hwaddr[2] == 0xF0) ? 0xF7 : hwaddr[2];
++
++			/* Check if the value is a valid mac registered for
++			 * Enclustra  GmbH
++			 */
++			hwaddr_h = hwaddr[0] | hwaddr[1] << 8 | hwaddr[2] << 16;
++			if ((hwaddr_h & 0xFFFFFF) != ENCLUSTRA_MAC)
++				continue;
++
++			/* Format the address using a string */
++			sprintf(hwaddr_str,
++				"%02X:%02X:%02X:%02X:%02X:%02X",
++				hwaddr[0],
++				hwaddr[1],
++				hwaddr[2],
++				hwaddr[3],
++				hwaddr[4],
++				hwaddr[5]);
++
++			/* Set the actual env variable */
++			env_set("ethaddr", hwaddr_str);
++
++			/* increment MAC addr */
++			hwaddr_h = (hwaddr[3] << 16) | (hwaddr[4] << 8) | hwaddr[5];
++			hwaddr_h = (hwaddr_h + 1) & 0xFFFFFF;
++			hwaddr[3] = (hwaddr_h >> 16) & 0xFF;
++			hwaddr[4] = (hwaddr_h >> 8) & 0xFF;
++			hwaddr[5] = hwaddr_h & 0xFF;
++
++			/* Format the address using a string */
++			sprintf(hwaddr_str,
++				"%02X:%02X:%02X:%02X:%02X:%02X",
++				hwaddr[0],
++				hwaddr[1],
++				hwaddr[2],
++				hwaddr[3],
++				hwaddr[4],
++				hwaddr[5]);
++
++			/* Set the actual env variable */
++			env_set("eth1addr", hwaddr_str);
++
++			hwaddr_set = true;
++			break;
++		}
++
++		if (!hwaddr_set) {
++			env_set("ethaddr", ENCLUSTRA_ETHADDR_DEFAULT);
++			env_set("eth1addr", ENCLUSTRA_ETH1ADDR_DEFAULT);
++		}
++	}
++	return 0;
++#endif
++}
++
+--- u-boot-xlnx/board/xilinx/zynq/Makefile
++++ xilinx-uboot/board/xilinx/zynq/Makefile
+@@ -5,6 +5,9 @@
+ 
+ obj-y	:= board.o
+ obj-y	+= ../common/board.o
++obj-y	+= ../common/enclustra.o
++obj-y   += board_mux.o
++obj-$(CONFIG_BOARD_COSMOS_XZQ10) += board_cosmos.o
+ 
+ ifneq ($(CONFIG_XILINX_PS_INIT_FILE),"")
+ PS_INIT_FILE := $(shell cd $(srctree); readlink -f $(CONFIG_XILINX_PS_INIT_FILE))
+--- u-boot-xlnx/board/xilinx/zynq/board_mux.c
++++ xilinx-uboot/board/xilinx/zynq/board_mux.c
+@@ -0,0 +1,147 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2020 Enclustra GmbH
++ */
++
++#include <common.h>
++#include <command.h>
++#include <env.h>
++#include <fdtdec.h>
++#include <zynqpl.h>
++#include <asm/arch/hardware.h>
++#include <asm/arch/sys_proto.h>
++#include <asm/io.h>
++#include <asm/arch/ps7_init_gpl.h>
++
++#define NANDMUX         0x00000010
++#define NANDMUX_PULLUP  0x00001010
++#define QSPIMUX         0x00000002
++#define QSPIMUX_PULLUP  0x00001002
++#define TRISTATE_PULLUP 0x00001001
++#define GPIO            0x00000000
++#define GPIO_PULLUP     0x00001000
++#define IO_TYPE_MASK    0x00000E00
++
++/* Select which flash type currently uses Pins */
++#define ZX_NONE    (0)
++#define ZX_NAND    (1)
++#define ZX_QSPI    (2)
++
++#ifdef CONFIG_ENCLUSTRA_NANDMUX
++
++extern void zynq_slcr_unlock(void);
++extern void zynq_slcr_lock(void);
++/**
++ * Set pin muxing for NAND access
++ */
++static void set_mio_mux_nand( void ){
++
++	zynq_slcr_unlock();
++
++	/* Define MuxIO for NAND */
++	/* Caution: overwrite some QSPI muxing !!! */
++	writel(NANDMUX_PULLUP            | (readl(&slcr_base->mio_pin[0])  & IO_TYPE_MASK), &slcr_base->mio_pin[0]);  /* Pin 0, NAND Flash Chip Select */
++	writel(TRISTATE_PULLUP           | (readl(&slcr_base->mio_pin[1])  & IO_TYPE_MASK), &slcr_base->mio_pin[1]);  /* Pin 1, not NAND */
++	writel(NANDMUX                   | (readl(&slcr_base->mio_pin[2])  & IO_TYPE_MASK), &slcr_base->mio_pin[2]);  /* Pin 2, NAND Flash ALEn */
++	writel(NANDMUX                   | (readl(&slcr_base->mio_pin[3])  & IO_TYPE_MASK), &slcr_base->mio_pin[3]);  /* Pin 3, NAND WE_B */
++	writel(NANDMUX                   | (readl(&slcr_base->mio_pin[4])  & IO_TYPE_MASK), &slcr_base->mio_pin[4]);  /* Pin 4, NAND Flash IO Bit 2 */
++	writel(NANDMUX                   | (readl(&slcr_base->mio_pin[5])  & IO_TYPE_MASK), &slcr_base->mio_pin[5]);  /* Pin 5, NAND Flash IO Bit 0 */
++	writel(NANDMUX                   | (readl(&slcr_base->mio_pin[6])  & IO_TYPE_MASK), &slcr_base->mio_pin[6]);  /* Pin 6, NAND Flash IO Bit 1 */
++	writel(NANDMUX                   | (readl(&slcr_base->mio_pin[7])  & IO_TYPE_MASK), &slcr_base->mio_pin[7]);  /* Pin 7, NAND Flash CLE_B */
++	writel(NANDMUX                   | (readl(&slcr_base->mio_pin[8])  & IO_TYPE_MASK), &slcr_base->mio_pin[8]);  /* Pin 8, NAND Flash RD_B */
++	writel(NANDMUX_PULLUP            | (readl(&slcr_base->mio_pin[9])  & IO_TYPE_MASK), &slcr_base->mio_pin[9]);  /* Pin 9, NAND Flash IO Bit 4 */
++	writel(NANDMUX_PULLUP            | (readl(&slcr_base->mio_pin[10]) & IO_TYPE_MASK), &slcr_base->mio_pin[10]); /* Pin 10, NAND Flash IO Bit 5 */
++	writel(NANDMUX_PULLUP            | (readl(&slcr_base->mio_pin[11]) & IO_TYPE_MASK), &slcr_base->mio_pin[11]); /* Pin 11, NAND Flash IO Bit 6 */
++	writel(NANDMUX_PULLUP            | (readl(&slcr_base->mio_pin[12]) & IO_TYPE_MASK), &slcr_base->mio_pin[12]); /* Pin 12, NAND Flash IO Bit 7 */
++	writel(NANDMUX_PULLUP            | (readl(&slcr_base->mio_pin[13]) & IO_TYPE_MASK), &slcr_base->mio_pin[13]); /* Pin 13, NAND Flash IO Bit 3 */
++	writel(NANDMUX | TRISTATE_PULLUP | (readl(&slcr_base->mio_pin[14]) & IO_TYPE_MASK), &slcr_base->mio_pin[14]); /* Pin 14, NAND Flash Busy */
++
++	// configure SMC_CLK_CTRL (usually done by FSBL)
++	uint32_t in_clk = 33333334; // input clock in Hz
++	uint32_t smc_clk = 100000000; // requested SMC clock frequency in Hz
++	uint32_t iopll_fb_mult = (readl(&slcr_base->io_pll_ctrl) >> 12) & 0x3F; // get IO PLL feedback divider
++	uint32_t smc_clk_div = (in_clk*iopll_fb_mult)/smc_clk;  // calculate SMC clock divider
++	writel((smc_clk_div << 8) | 0x1, &slcr_base->smc_clk_ctrl); // select IO PLL as source, enable clock and set divider value
++
++	zynq_slcr_lock();
++	
++	printf("Flash MIO pins configured to NAND mode\n");
++}
++
++/**
++ * Set the pin muxing for QSPI NOR access
++ */
++static void set_mio_mux_qspi( void ){
++
++	zynq_slcr_unlock();
++
++	/* Define MuxIO for QSPI */
++	/* Caution: overwrite some NAND muxing !!! */
++	writel(GPIO_PULLUP    | (readl(&slcr_base->mio_pin[0])  & IO_TYPE_MASK), &slcr_base->mio_pin[0]);  /* Pin 0, Level 3 Mux */
++	writel(QSPIMUX_PULLUP | (readl(&slcr_base->mio_pin[1])  & IO_TYPE_MASK), &slcr_base->mio_pin[1]);  /* Pin 1, Quad SPI 0 Chip Select */
++	writel(QSPIMUX        | (readl(&slcr_base->mio_pin[2])  & IO_TYPE_MASK), &slcr_base->mio_pin[2]);  /* Pin 2, Quad SPI 0 IO Bit 0 */
++	writel(QSPIMUX        | (readl(&slcr_base->mio_pin[3])  & IO_TYPE_MASK), &slcr_base->mio_pin[3]);  /* Pin 3, Quad SPI 0 IO Bit 1 */
++	writel(QSPIMUX        | (readl(&slcr_base->mio_pin[4])  & IO_TYPE_MASK), &slcr_base->mio_pin[4]);  /* Pin 4, Quad SPI 0 IO Bit 2 */
++	writel(QSPIMUX        | (readl(&slcr_base->mio_pin[5])  & IO_TYPE_MASK), &slcr_base->mio_pin[5]);  /* Pin 5, Quad SPI 0 IO Bit 3 */
++	writel(QSPIMUX        | (readl(&slcr_base->mio_pin[6])  & IO_TYPE_MASK), &slcr_base->mio_pin[6]);  /* Pin 6, Quad SPI 0 Clock */
++	writel(GPIO           | (readl(&slcr_base->mio_pin[7])  & IO_TYPE_MASK), &slcr_base->mio_pin[7]);  /* Pin 7, Reserved*/
++	writel(GPIO           | (readl(&slcr_base->mio_pin[8])  & IO_TYPE_MASK), &slcr_base->mio_pin[8]);  /* Pin 8, Quad SPI Feedback Clock */
++	writel(GPIO_PULLUP    | (readl(&slcr_base->mio_pin[9])  & IO_TYPE_MASK), &slcr_base->mio_pin[9]);  /* Pin 9, Level mux -> disable */
++	writel(GPIO_PULLUP    | (readl(&slcr_base->mio_pin[10]) & IO_TYPE_MASK), &slcr_base->mio_pin[10]); /* Pin 10, Level mux -> disable */
++	writel(GPIO_PULLUP    | (readl(&slcr_base->mio_pin[11]) & IO_TYPE_MASK), &slcr_base->mio_pin[11]); /* Pin 11, Level mux -> disable */
++	writel(GPIO_PULLUP    | (readl(&slcr_base->mio_pin[12]) & IO_TYPE_MASK), &slcr_base->mio_pin[12]); /* Pin 12, Level mux -> disable */
++	writel(GPIO_PULLUP    | (readl(&slcr_base->mio_pin[13]) & IO_TYPE_MASK), &slcr_base->mio_pin[13]); /* Pin 13, Level mux -> disable */
++	writel(GPIO_PULLUP    | (readl(&slcr_base->mio_pin[14]) & IO_TYPE_MASK), &slcr_base->mio_pin[14]); /* Pin 14, Level mux -> disable */
++
++	zynq_slcr_lock();
++	
++	printf("Flash MIO pins configured to QSPI mode\n");
++}
++
++static int zx_current_storage = ZX_NONE;
++
++void zx_set_storage (char* arg) {
++	int store = ZX_NONE;
++
++	if (!strcmp(arg, "NAND"))
++		store = ZX_NAND;
++	else if (!strcmp(arg, "QSPI"))
++		store = ZX_QSPI;
++
++	if (store == zx_current_storage)
++		return;
++
++	switch (store)
++	{
++		case ZX_NAND:
++			set_mio_mux_nand ();
++			zx_current_storage = ZX_NAND;
++			break;
++		case ZX_QSPI:
++			set_mio_mux_qspi();
++			zx_current_storage = ZX_QSPI;
++			break;
++		default:
++			zx_current_storage = ZX_NONE;
++			break;
++	}
++}
++#endif
++
++int zx_set_storage_cmd(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
++{
++#ifdef CONFIG_ENCLUSTRA_NANDMUX
++	if(argc != 2)
++		return CMD_RET_USAGE;
++	if(!strcmp(argv[1], "NAND"))
++		zx_set_storage("NAND");
++	else if (!strcmp(argv[1], "QSPI"))
++		zx_set_storage("QSPI");
++	else return CMD_RET_USAGE;
++#endif
++	return CMD_RET_SUCCESS;
++}
++
++U_BOOT_CMD(zx_set_storage, 2, 0, zx_set_storage_cmd,
++	"Set non volatile memory access",
++	"<NAND|QSPI> - Set access for the selected memory device");
+\ No newline at end of file
+--- u-boot-xlnx/board/xilinx/zynq/board_cosmos.c
++++ xilinx-uboot/board/xilinx/zynq/board_cosmos.c
+@@ -0,0 +1,221 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2020 Enclustra GmbH
++ */
++ 
++#include <common.h>
++#include <command.h>
++#include <i2c.h>
++#include <zynqpl.h>
++#include <asm/arch/hardware.h>
++#include <asm/arch/sys_proto.h>
++#include <asm/io.h>
++
++#ifndef CONFIG_SPL_BUILD
++
++#define MGT_DEVICES_NO 8
++#define MGT_OUTPUT_NO  5
++
++#define MGT_I2C_MUX_ADDR 0x74
++
++#define MGT_IP1 (1 << 0)
++#define MGT_IP2 (1 << 1)
++#define MGT_IP3 (1 << 2)
++#define MGT_IP4 (1 << 3)
++#define MGT_IP5 (1 << 4)
++#define MGT_IP6 (1 << 5)
++#define MGT_IP7 (1 << 6)
++#define MGT_IP8 (1 << 7)
++
++#define MGT_CROSS_DISABLED 0
++#define MGT_CROSS_ENABLED  1
++
++#define MGT_SYS_CTRL    0x01
++#define MGT_CROSS5_CTRL 0x07
++#define MGT_SW_CTRL     0x08
++
++#define MGT_PASS  0
++#define MGT_CROSS 1
++
++#define MGT_SWITCH_EN (1 << 7)
++
++static const struct {
++	uint8_t i2c_mux_port;
++	uint8_t i2c_addr;
++} mgt_devices[MGT_DEVICES_NO] = {
++	{
++		.i2c_mux_port = 0,
++		.i2c_addr = 0x30,
++	},
++	{
++		.i2c_mux_port = 0,
++		.i2c_addr = 0x32,
++	},
++	{
++		.i2c_mux_port = 0,
++		.i2c_addr = 0x34,
++	},
++	{
++		.i2c_mux_port = 0,
++		.i2c_addr = 0x36,
++	},
++	{
++		.i2c_mux_port = 1,
++		.i2c_addr = 0x30,
++	},
++	{
++		.i2c_mux_port = 1,
++		.i2c_addr = 0x32,
++	},
++	{
++		.i2c_mux_port = 1,
++		.i2c_addr = 0x34,
++	},
++	{
++		.i2c_mux_port = 1,
++		.i2c_addr = 0x36,
++	},
++};
++
++static const struct {
++	uint8_t inputs;
++	uint8_t cross;
++} mgt_outputs[MGT_OUTPUT_NO] = {
++	{
++		.inputs = MGT_IP1 | MGT_IP2 | MGT_IP3,
++		.cross  = MGT_CROSS_DISABLED,
++	},
++	{
++		.inputs = MGT_IP1 | MGT_IP2 | MGT_IP3,
++		.cross  = MGT_CROSS_DISABLED,
++	},
++	{
++		.inputs = MGT_IP4 | MGT_IP5 | MGT_IP6,
++		.cross  = MGT_CROSS_DISABLED,
++	},
++	{
++		.inputs = MGT_IP4 | MGT_IP5 | MGT_IP6,
++		.cross  = MGT_CROSS_DISABLED,
++	},
++	{
++		.inputs = MGT_IP7 | MGT_IP8,
++		.cross  = MGT_CROSS_ENABLED,
++	},
++};
++
++static int mgt_set_routing(uint8_t mgt_dev, uint8_t mgt_input,
++		uint8_t mgt_output, uint8_t cross)
++{
++	uint8_t i2c_buf;
++	struct udevice *mux, *dev;
++
++	if (mgt_dev > ARRAY_SIZE(mgt_devices)) {
++		printf("Error: Wrong MGT device\n");
++		return CMD_RET_FAILURE;
++	}
++
++	if (mgt_output > ARRAY_SIZE(mgt_outputs)) {
++		printf("Error: Wrong MGT output\n");
++		return CMD_RET_FAILURE;
++	}
++
++	if (!((1 << (mgt_input - 1)) & mgt_outputs[mgt_output - 1].inputs)) {
++		printf("Error: Wrong MGT input\n");
++		return CMD_RET_FAILURE;
++	}
++
++	if (cross && mgt_outputs[mgt_output - 1].cross == MGT_CROSS_DISABLED) {
++		printf("Error: This output does not support cross connection\n");
++		return CMD_RET_FAILURE;
++	}
++
++	if (i2c_get_chip_for_busnum(0, MGT_I2C_MUX_ADDR, 0, &mux)) {
++		printf("Cannot find MUX on the I2C bus\n");
++		return CMD_RET_FAILURE;
++	}
++
++	if (i2c_get_chip_for_busnum(0, mgt_devices[mgt_dev].i2c_addr, 1,
++				    &dev)) {
++		printf("Cannot find MGT device on the I2C bus\n");
++		return CMD_RET_FAILURE;
++	}
++
++	/* Configure I2C MUX to appropriate port */
++	i2c_buf = 0x08 | mgt_devices[mgt_dev].i2c_mux_port;
++	dm_i2c_write(mux, 0, &i2c_buf, 1);
++
++	/* Write 1 to SWITCH_EN bit to ensure device is active */
++	i2c_buf = MGT_SWITCH_EN;
++	dm_i2c_write(dev, MGT_SYS_CTRL, &i2c_buf, 1);
++
++	/* Configure MGT mux port */
++	i2c_buf = (1 << (mgt_input - 1));
++	dm_i2c_write(dev, mgt_output + 1, &i2c_buf, 1);
++
++	/* Configure cross connection in case of output 5 */
++	if (mgt_outputs[mgt_output - 1].cross == MGT_CROSS_ENABLED) {
++		if (cross) {
++			i2c_buf = (1 << MGT_CROSS);
++			dm_i2c_write(dev, MGT_CROSS5_CTRL, &i2c_buf, 1);
++		} else {
++			i2c_buf = (1 << MGT_PASS);
++			dm_i2c_write(dev, MGT_CROSS5_CTRL, &i2c_buf, 1);
++		}
++	}
++
++	/* Enable configuration registers in SW_CTRL register */
++	i2c_buf = (1 << (mgt_output - 1));
++
++	if (mgt_outputs[mgt_output - 1].cross == MGT_CROSS_ENABLED)
++		i2c_buf |= (1 << 5);
++
++	if (dm_i2c_write(dev, MGT_SW_CTRL, &i2c_buf, 1)) {
++		printf("Error: I2C write operation failed\n");
++		return CMD_RET_FAILURE;
++	}
++
++	return CMD_RET_SUCCESS;
++}
++
++static int mgt_set_routing_cmd(cmd_tbl_t *cmdtp, int flag,
++		int argc, char * const argv[])
++{
++	int mgt_dev = 0, mgt_input = 0, mgt_output = 0, cross = 0;
++	char *endp;
++
++	if (argc != 4 && argc != 5)
++		return CMD_RET_USAGE;
++
++	mgt_dev = simple_strtoul(argv[1], &endp, 10);
++	if (endp == argv[1])
++		return CMD_RET_USAGE;
++
++	mgt_input = simple_strtoul(argv[2], &endp, 10);
++	if (endp == argv[2])
++		return CMD_RET_USAGE;
++
++	mgt_output = simple_strtoul(argv[3], &endp, 10);
++	if (endp == argv[3])
++		return CMD_RET_USAGE;
++
++	if (argc == 5) {
++		if (!strcmp(argv[4], "-x"))
++			cross = 1;
++		else
++			return CMD_RET_USAGE;
++	}
++
++	return mgt_set_routing((uint8_t)mgt_dev, (uint8_t)mgt_input,
++			(uint8_t)mgt_output, (uint8_t)cross);
++}
++
++U_BOOT_CMD(mgt_set_routing, 5, 0, mgt_set_routing_cmd,
++	   "Set signal routing in CBTL08GP053 MGT multiplexer",
++	   "mgt_set_routing device input output [-x] - Configure device number $dev\n"
++	   "                                   to connect $input to $output. If -x\n"
++	   "                                   is specified, set the connection to\n"
++	   "                                   crossed mode (only output no 5 has\n"
++	   "                                   support for this functionality)");
++
++#endif
++
+--- u-boot-xlnx/board/xilinx/Kconfig
++++ xilinx-uboot/board/xilinx/Kconfig
+@@ -63,3 +63,13 @@
+ 	default 0x7F80000 if ARCH_VERSAL
+ 	help
+ 	   Specifies distro boot script offset in NAND/NOR flash.
++
++config ENCLUSTRA_EEPROM_MAC
++	bool "Enable support for reading MAC address from EEPROM"
++	help
++	  Enables MAC address readout from EEPROM
++
++config ENCLUSTRA_NANDMUX
++	bool "QSPI NAND multiplexer"
++	help
++	  Enables MIO multiplexer for Enclustra ZX modules
+--- u-boot-xlnx/drivers/mtd/nand/raw/zynq_nand.c
++++ xilinx-uboot/drivers/mtd/nand/raw/zynq_nand.c
+@@ -1066,6 +1066,10 @@
+ 	return is_16bit_bw;
+ }
+ 
++#ifdef CONFIG_ENCLUSTRA_NANDMUX
++extern void zx_set_storage (char * arg);
++#endif
++
+ static int zynq_nand_probe(struct udevice *dev)
+ {
+ 	struct zynq_nand_info *zynq = dev_get_priv(dev);
+@@ -1089,6 +1093,9 @@
+ 		printf("Failed to find nand node in dt\n");
+ 		return -ENODEV;
+ 	}
++#ifdef CONFIG_ENCLUSTRA_NANDMUX
++        zx_set_storage("NAND");
++#endif
+ 
+ 	if (!ofnode_is_available(of_nand)) {
+ 		debug("Nand node in dt disabled\n");
+--- u-boot-xlnx/drivers/spi/zynq_qspi.c
++++ xilinx-uboot/drivers/spi/zynq_qspi.c
+@@ -292,6 +292,10 @@
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_ENCLUSTRA_NANDMUX
++extern void zx_set_storage(char* arg);
++#endif
++
+ static int zynq_qspi_probe(struct udevice *bus)
+ {
+ 	struct zynq_qspi_platdata *plat = dev_get_platdata(bus);
+@@ -300,6 +304,10 @@
+ 	unsigned long clock;
+ 	int ret;
+ 
++#ifdef CONFIG_ENCLUSTRA_NANDMUX
++	zx_set_storage("QSPI");
++#endif
++
+ 	priv->regs = plat->regs;
+ 	priv->fifo_depth = ZYNQ_QSPI_FIFO_DEPTH;
+ 	priv->is_dual = plat->is_dual;

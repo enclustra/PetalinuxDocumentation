@@ -1,0 +1,172 @@
+--- u-boot-xlnx/drivers/misc/atsha204a-i2c.c
++++ xilinx-uboot/drivers/misc/atsha204a-i2c.c
+@@ -237,10 +237,10 @@
+ 		}
+ 
+ 		debug("success\n");
+-		break;
++		return 0;
+ 	}
+ 
+-	return 0;
++	return -ETIMEDOUT;
+ }
+ 
+ int atsha204a_idle(struct udevice *dev)
+@@ -277,6 +277,7 @@
+ 	}
+ 
+ 	do {
++		udelay(ATSHA204A_EXECTIME);
+ 		res = atsha204a_recv_resp(dev, resp);
+ 		if (!res || res == -EMSGSIZE || res == -EBADMSG)
+ 			break;
+@@ -284,7 +285,6 @@
+ 		debug("ATSHA204A transaction polling for response "
+ 		      "(timeout = %d)\n", timeout);
+ 
+-		udelay(ATSHA204A_EXECTIME);
+ 		timeout -= ATSHA204A_EXECTIME;
+ 	} while (timeout > 0);
+ 
+@@ -385,7 +385,8 @@
+ 	fdt_addr_t *priv = dev_get_priv(dev);
+ 	fdt_addr_t addr;
+ 
+-	addr = fdtdec_get_addr(gd->fdt_blob, dev_of_offset(dev), "reg");
++	ofnode node = dev_ofnode(dev);
++	addr = ofnode_read_u32_default(node, "reg", -1);
+ 	if (addr == FDT_ADDR_T_NONE) {
+ 		debug("Can't get ATSHA204A I2C base address\n");
+ 		return -ENXIO;
+--- u-boot-xlnx/drivers/misc/eeprom-mac.c
++++ xilinx-uboot/drivers/misc/eeprom-mac.c
+@@ -0,0 +1,96 @@
++#include <common.h>
++#include <linux/compat.h>
++#include <dm.h>
++#include <i2c.h>
++#include <enclustra/eeprom-mac.h>
++#include <atsha204a-i2c.h>
++
++static int i2c_get_device(uint chip_addr, int alen, struct udevice **devp)
++{
++	struct dm_i2c_chip *chip;
++	int ret;
++
++	ret = i2c_get_chip_for_busnum(CONFIG_SYS_I2C_EEPROM_BUS, chip_addr,
++				      alen, devp);
++	if (ret)
++		return ret;
++
++	chip = dev_get_parent_platdata(*devp);
++	if (chip->offset_len != alen) {
++		printf("I2C chip %x: requested alen %d does not match chip "
++		       "offset_len %d\n", chip_addr, alen, chip->offset_len);
++		return -EADDRNOTAVAIL;
++	}
++
++	return 0;
++}
++
++static struct udevice *get_atsha204a_dev(void)
++{
++	static struct udevice *dev;
++
++	if (uclass_get_device_by_name(UCLASS_MISC, "atsha204a@64", &dev)) {
++		debug("Cannot find ATSHA204A on I2C bus!\n");
++		dev = NULL;
++	}
++
++	return dev;
++}
++
++int ds28_get_mac(u8 *buffer)
++{
++	int ret;
++	struct udevice *dev;
++
++	ret = i2c_get_device(DS28_I2C_ADDR, 1, &dev);
++	if (ret != 0)
++		return ret;
++
++	return dm_i2c_read(dev,
++		   0x10,
++		   buffer,
++		   6);
++}
++EXPORT_SYMBOL_GPL(ds28_get_mac);
++
++int atsha204_get_mac(u8 *buffer)
++{
++	int ret;
++	u8 data[4];
++	u8 i;
++	struct udevice *dev = get_atsha204a_dev();
++
++	if (!dev)
++		return -ENODEV;
++
++#ifdef CONFIG_ATSHA204A
++	ret = atsha204a_wakeup(dev);
++
++	if (ret)
++		return ret;
++
++	ret = atsha204a_read(dev, ATSHA204A_ZONE_OTP, false,
++			     4, data);
++
++	if (ret) {
++		return ret;
++	} else {
++		for (i = 0; i < 4; i++)
++			buffer[i] = data[i];
++	}
++
++	ret = atsha204a_read(dev, ATSHA204A_ZONE_OTP, false,
++			     5, data);
++	if (ret) {
++		return ret;
++	} else {
++		buffer[4] = data[0];
++		buffer[5] = data[1];
++	}
++
++	atsha204a_sleep(dev);
++#endif
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(atsha204_get_mac);
+--- u-boot-xlnx/drivers/misc/Makefile
++++ xilinx-uboot/drivers/misc/Makefile
+@@ -30,6 +30,7 @@
+ obj-$(CONFIG_ATSHA204A) += atsha204a-i2c.o
+ obj-$(CONFIG_CBMEM_CONSOLE) += cbmem_console.o
+ obj-$(CONFIG_DS4510)  += ds4510.o
++obj-$(CONFIG_ENCLUSTRA_EEPROM_MAC) += eeprom-mac.o
+ obj-$(CONFIG_FSL_DEVICE_DISABLE) += fsl_devdis.o
+ obj-$(CONFIG_FSL_IFC) += fsl_ifc.o
+ obj-$(CONFIG_FSL_IIM) += fsl_iim.o
+--- u-boot-xlnx/include/enclustra/eeprom-mac.h
++++ xilinx-uboot/include/enclustra/eeprom-mac.h
+@@ -0,0 +1,8 @@
++#define DS28_I2C_ADDR 0x5C
++
++struct eeprom_mem {
++    int (*mac_reader)(u8 *buffer);
++};
++
++int ds28_get_mac(u8 *buffer);
++int atsha204_get_mac(u8 *buffer);
+--- u-boot-xlnx/include/init.h
++++ xilinx-uboot/include/init.h
+@@ -202,6 +202,8 @@
+ /* manipulate the U-Boot fdt before its relocation */
+ int board_fix_fdt(void *rw_fdt_blob);
+ int board_late_init(void);
++int enclustra_board(void);
++int enclustra_common(void);
+ int board_postclk_init(void); /* after clocks/timebase, before env/serial */
+ int board_early_init_r(void);
+ 
