@@ -20,16 +20,16 @@ This means that only the "image.ub" for programming to the NAND flash is left, w
 
 The following steps must be performed.
 
-1. Programm the QSPI (optionally SD):
+1. Program the QSPI (optionally SD):
 
  Have a look at the detailed instructions: [QSPI_boot_mode.md](QSPI_boot_mode.md) or [SD_boot_mode.md](SD_boot_mode.md).
 
-2. Programm the NAND
+2. Program the NAND
 
- For detailed instructions have a look at the user manuals:
-    * Mercury ZX1 chapter [3.10 NAND Flash Programming](https://download.enclustra.com/public_files/SoC_Modules/Mercury_ZX1/Mercury_ZX1_User_Manual_V05.pdf)
-    * Mars ZX3 chapter [3.9 NAND Flash Programming](https://download.enclustra.com/public_files/SoC_Modules/Mars_ZX3/Mars_ZX3_User_Manual_V07.pdf)
-    * Mars ZX5 chapter [3.10 NAND Flash Programming](https://download.enclustra.com/public_files/SoC_Modules/Mercury_ZX5/Mercury_ZX5_User_Manual_V05.pdf)
+For detailed instructions have a look at the user manuals:
+   * Mercury ZX1 chapter [3.10 NAND Flash Programming](https://download.enclustra.com/public_files/SoC_Modules/Mercury_ZX1/Mercury_ZX1_User_Manual_V05.pdf)
+   * Mars ZX3 chapter [3.9 NAND Flash Programming](https://download.enclustra.com/public_files/SoC_Modules/Mars_ZX3/Mars_ZX3_User_Manual_V07.pdf)
+   * Mars ZX5 chapter [3.10 NAND Flash Programming](https://download.enclustra.com/public_files/SoC_Modules/Mercury_ZX5/Mercury_ZX5_User_Manual_V05.pdf)
 
 > **_NOTE:_** Please note that Vivado Hardware Manager does not support the NAND flash type equipped on the Mercury ZX1 SoC module.
 

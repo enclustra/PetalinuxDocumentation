@@ -19,13 +19,15 @@
 
 ## Petalinux project creation and build with BSP file
 
-The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_NAME}_${BASEBOARD_NAME}_${BOOT_MODE}.bsp`. Using the Mercury ME-XU5-2EG-1I-D11E as an example in combination with the PE1 baseboard and SD card boot mode the file will have the name: `Petalinux_ME-XU5-2EG-1I-D11E_PE1_SD.bsp`
+The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_NAME}_${BASEBOARD_NAME}_${BOOT_MODE}.bsp` (The BSPs themselves are located in the release page of each respective reference design, e.g. [Mercury XU5 PE1 release 2020.1_v1.1.0](https://github.com/enclustra/Mercury_XU5_PE1_Reference_Design/releases/tag/2020.1_v1.1.0) ). Using the Mercury ME-XU5-2EG-1I-D11E as an example in combination with the PE1 baseboard and SD card boot mode the file will have the name: `Petalinux_ME-XU5-2EG-1I-D11E_PE1_SD.bsp`
 
-- Open a console and source the Petalinux environment script: `source /<path-to-petalinux-installation-dir>/settings.sh`
+1. Open a console and source the Petalinux environment script: `source /<path-to-petalinux-installation-dir>/settings.sh`
 
-- To create a Petalinux project from the provided bsp file use: `petalinux-create --type project -s <path-to-bsp-file>.bsp`
+2. To create a Petalinux project from the provided bsp file use: `petalinux-create --type project -s <path-to-bsp-file>.bsp`
 
-- The created project has the following structure
+3. The created project has the following structure:
+   <details><summary>Click to expand project tree view</summary>
+
     ```
     PETALINUX_PROJECT_FOLDER
     ├── components
@@ -63,10 +65,11 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
                 └── u-boot
                     ├── ...
     ```
+    </details>
 
-- Use `petalinux-build` to build the project
+4. Use `petalinux-build` to build the project
 
-- Use the `petalinux-package` command to generate the boot components:
+5. Use the `petalinux-package` command to generate the boot components:
     - for ZynqMP:
         ```
         petalinux-package --boot --fsbl images/linux/zynqmp_fsbl.elf --u-boot images/linux/u-boot.elf --pmufw images/linux/pmufw.elf --fpga images/linux/system.bit --force
@@ -78,9 +81,9 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
 
     Refer to [Xilinx UG 1144](https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_1/ug1144-petalinux-tools-reference-guide.pdf) for the correct arguments.
 
-- The boot components will be located in **PETALINUX_PROJECT_FOLDER -> images -> linux**.
+6. The boot components will be located in **PETALINUX_PROJECT_FOLDER -> images -> linux**.
 
-- Run the created images on hardware
+7. Run the created images on hardware
     - For SD boot mode, follow: [SD_boot_mode.md](SD_boot_mode.md)
     - For QSPI boot mode, follow: [QSPI_boot_mode.md](QSPI_boot_mode.md)
     - For NAND boot mode, follow: [NAND_boot_mode.md](NAND_boot_mode.md)
@@ -88,22 +91,22 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
 ## Updating the hardware file (.xsa) used by the Petalinux project
 
 The provided `xsa` file (**PETALINUX_PROJECT_FOLDER -> hardware -> vivado_export**) is the hardware archive generated from the corresponding Enclustra reference design. To change the `xsa` file used by Petalinux please follow these steps:
-- Make your changes to the hardware in Vivado
-- Generate the bitstream and export the hardware including the bitstream
-- The easiest way is to replace the provided `xsa` file with the newly generated one in the **PETALINUX_PROJECT_FOLDER -> hardware -> vivado_export folder**
-- Then update the hardware description in Petalinux: `petalinux-config --get-hw-description=./hardware/vivado_export`
-- If needed, make changes to the Petalinux config corresponding to the updated hardware
-- Rebuild the project: `petalinux-build`
-- Finally, use `petalinux-package --boot ...` to regenerate the boot files
+1. Make your changes to the hardware in Vivado
+2. Generate the bitstream and export the hardware including the bitstream
+3. The easiest way is to replace the provided `xsa` file with the newly generated one in the **PETALINUX_PROJECT_FOLDER -> hardware -> vivado_export folder**
+4. Then update the hardware description in Petalinux: `petalinux-config --get-hw-description=./hardware/vivado_export`
+5. If needed, make changes to the Petalinux config corresponding to the updated hardware
+6. Rebuild the project: `petalinux-build`
+7. Finally, use `petalinux-package --boot ...` to regenerate the boot files
 
 ## Accelerating Petalinux builds
 Petalinux fetches all necessary sources during the build process and afterwards uses incremental builds. If a lot of builds need to be run, the process can be accelerated by downloading these sources into a separate directory and referencing this directory in **PETALINUX_PROJECT_FOLDER -> project-spec -> meta-user -> conf -> petalinuxbsp.conf**
-- Download the cache files from https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/embedded-design-tools.html under **PetaLinux Tools sstate-cache artifacts** to a convenient directory outside of the Petalinux project
-- Using `petalinux-config` within the Petalinux project, navigate to **Yocto Settings -> Add pre-mirror url**
-- Enter the path to downloads directory. Prepend the path with `file://`
-- Navigate to **Yocto Settings -> Local sstate feeds and settings**
-- Enter the path to the installed sstate cache directory corresponding to your SoC architecture
-- Save and exit
+1. Download the cache files from https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/embedded-design-tools.html under **PetaLinux Tools sstate-cache artifacts** to a convenient directory outside of the Petalinux project
+2. Using `petalinux-config` within the Petalinux project, navigate to **Yocto Settings -> Add pre-mirror url**
+3. Enter the path to downloads directory. Prepend the path with `file://`
+4. Navigate to **Yocto Settings -> Local sstate feeds and settings**
+5. Enter the path to the installed sstate cache directory corresponding to your SoC architecture
+6. Save and exit
 
 Complete offline builds are also possible by following the steps from https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/60129817/Xilinx+Yocto+Builds+without+an+Internet+Connection
 
