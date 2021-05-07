@@ -23,7 +23,7 @@ The equipped QSPI flash on Enclustra modules is typically 64 MBytes large. If th
     - Under `Advanced bootable images storage Settings`:
         - `boot image settings -> images storage media`: set to `primary flash`
         - `kernel image settings -> image storage media`: set to `primary flash`
-    - Note that the default Xilinx kernel is too big for this specific configuration and a reduced kernel configuration is used to fit the kernel onte the QSPI memory.
+    - Note that the default Xilinx kernel is too big for this specific configuration and a reduced kernel configuration is used to fit the kernel onto the QSPI memory.
 3. Run `petalinux-config -c u-boot` and set `ARM architecture -> Boot script offset` corresponding to your offset address. The offset address can be found in the Petalinux project folder `components/plnx_workspace/device-tree/device-tree/system-conf.dtsi` under the dts entry for the `bootscr` partition. For the above example configuration the correct offset is `0x1f80000`.
 4. Adjust the values for the kernel offset and the FIT image size in `project-spec/meta-user/recipes-bsp/u-boot/u-boot-zynq-scr.bbappend`:
     - `QSPI_KERNEL_OFFSET` according to your configuration, in this case `0x2000000`
