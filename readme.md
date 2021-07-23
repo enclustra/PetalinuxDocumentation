@@ -20,17 +20,20 @@ Enlustra GmbH [support@enclustra.com]
 See [Changelog](changelog.md).
 
 ## Description
-This repository provides the necessary documentation for all Enclustra Petalinux BSPs. **The BSPs are found in the respective release of the reference design repositories, e.g.** [Mercury XU5 PE1 release 2020.1_v1.1.0](https://github.com/enclustra/Mercury_XU5_PE1_Reference_Design/releases/tag/2020.1_v1.1.0).
+This repository provides the necessary documentation for all Enclustra Petalinux BSPs. 
+> **_NOTE:_** **The BSPs are found in the respective release of the reference design repositories, e.g.** [Mercury XU5 PE1 release 2020.2_v1.2.0](https://github.com/enclustra/Mercury_XU5_PE1_Reference_Design/releases/tag/2020.2_v1.2.0).
 
 ## Links to reference designs
 
-Please note that the reference designs have folders called `petalinux` in their respective repository. The folder contains the unpacked BSPs that are found in the release page of repository. The reason behind this is to make the changes in the BSP visible via the commit history of the repository without having to download, unpack and compare the BSP files between releases. That way, you can see which part changed and incorpoprate that change in your design if necessary.
+> **_NOTE:_**  Please note that the reference designs have folders called `petalinux` in their respective repository. The folder contains the unpacked BSPs that are found in the release page of repository. The reason behind this is to make the changes in the BSP visible via the commit history of the repository without having to download, unpack and compare the BSP files between releases. That way, you can see which part changed and incorpoprate that change in your design if necessary.
 
 ### Mercury
 * [Mercury_XU1_PE1_Reference_Design](https://github.com/enclustra/Mercury_XU1_PE1_Reference_Design)
 * [Mercury_XU1_ST1_Reference_Design](https://github.com/enclustra/Mercury_XU1_ST1_Reference_Design)
 * [Mercury_XU5_PE1_Reference_Design](https://github.com/enclustra/Mercury_XU5_PE1_Reference_Design)
 * [Mercury_XU5_ST1_Reference_Design](https://github.com/enclustra/Mercury_XU5_ST1_Reference_Design)
+* [Mercury_XU6_PE1_Reference_Design](https://github.com/enclustra/Mercury_XU6_PE1_Reference_Design)
+* [Mercury_XU6_ST1_Reference_Design](https://github.com/enclustra/Mercury_XU6_ST1_Reference_Design)
 * [Mercury_XU7_PE1_Reference_Design](https://github.com/enclustra/Mercury_XU7_PE1_Reference_Design)
 * [Mercury_XU7_ST1_Reference_Design](https://github.com/enclustra/Mercury_XU7_ST1_Reference_Design)
 * [Mercury_XU8_PE1_Reference_Design](https://github.com/enclustra/Mercury_XU8_PE1_Reference_Design)
@@ -50,5 +53,3 @@ Please note that the reference designs have folders called `petalinux` in their 
 * [Mars_ZX3_ST3_Reference_Design](https://github.com/enclustra/Mars_ZX3_ST3_Reference_Design)
 * [Mars_ZX3_EB1_Reference_Design](https://github.com/enclustra/Mars_ZX3_EB1_Reference_Design)
 * [Mars_ZX3_PM3_Reference_Design](https://github.com/enclustra/Mars_ZX3_PM3_Reference_Design)
-### System boards
-* [Cosmos_XZQ10_Reference_Design](https://github.com/enclustra/Cosmos_XZQ10_Reference_Design)

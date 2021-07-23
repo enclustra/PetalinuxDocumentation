@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-- Supported Linux OS for Petalinux 2020.1
-- Petalinux 2020.1 installation and all required packages (for more details please refer to [UG1144])
+- Supported Linux OS for Petalinux 2020.2
+- Petalinux 2020.2 installation and all required packages (for more details please refer to [UG1144])
 - Reference Design documentation for the hardware combination in use (module and baseboard combination)
 
 ## Adjusting project for NAND boot mode
@@ -33,4 +33,4 @@ For detailed instructions have a look at the user manuals:
 
 > **_NOTE:_** Please note that Vivado Hardware Manager does not support the NAND flash type equipped on the Mercury ZX1 SoC module.
 
-[UG1144]: https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_1/ug1144-petalinux-tools-reference-guide.pdf
+[UG1144]: https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1144-petalinux-tools-reference-guide.pdf

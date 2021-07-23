@@ -14,12 +14,12 @@
 
 ## Prerequisites
 
-- Supported Linux OS for Petalinux 2020.1
-- Petalinux 2020.1 installation and all required packages (for more details please refer to [Xilinx UG 1144](https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_1/ug1144-petalinux-tools-reference-guide.pdf))
+- Supported Linux OS for Petalinux 2020.2
+- Petalinux 2020.2 installation and all required packages (for more details please refer to [UG1144])
 
 ## Petalinux project creation and build with BSP file
 
-The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_NAME}_${BASEBOARD_NAME}_${BOOT_MODE}.bsp` (The BSPs themselves are located in the release page of each respective reference design, e.g. [Mercury XU5 PE1 release 2020.1_v1.1.0](https://github.com/enclustra/Mercury_XU5_PE1_Reference_Design/releases/tag/2020.1_v1.1.0) ). Using the Mercury ME-XU5-2EG-1I-D11E as an example in combination with the PE1 baseboard and SD card boot mode the file will have the name: `Petalinux_ME-XU5-2EG-1I-D11E_PE1_SD.bsp`
+The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_NAME}_${BASEBOARD_NAME}_${BOOT_MODE}.bsp` (The BSPs themselves are located in the release page of each respective reference design, e.g. [Mercury XU5 PE1 release 2020.2_v1.2.0](https://github.com/enclustra/Mercury_XU5_PE1_Reference_Design/releases/tag/2020.2_v1.2.0) ). Using the Mercury ME-XU5-2EG-1I-D11E as an example in combination with the PE1 baseboard and SD card boot mode the file will have the name: `Petalinux_ME-XU5-2EG-1I-D11E_PE1_SD.bsp`
 
 1. Open a console and source the Petalinux environment script: `source /<path-to-petalinux-installation-dir>/settings.sh`
 
@@ -79,7 +79,7 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
         petalinux-package --boot --fsbl images/linux/zynq_fsbl.elf --fpga images/linux/system.bit --u-boot --force
         ```
 
-    Refer to [Xilinx UG 1144](https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_1/ug1144-petalinux-tools-reference-guide.pdf) for the correct arguments.
+    Refer to [UG1144] for the correct arguments.
 
 6. The boot components will be located in **PETALINUX_PROJECT_FOLDER -> images -> linux**.
 
@@ -118,6 +118,10 @@ The following patches are added to the default Petalinux kernel:
 - [si5338.patch](../patches/kernel/si5338.patch)
 
  Add the driver for the programmable i2c clock generator Si5338. Kernel configuration element is **COMMON_CLK_SI5338**.
+
+- [qspi.patch](../patches/kernel/qspi.patch)
+
+ Fix issue in QSPI driver for Zynq-7000 devices. The fix prevents the driver from using 4-byte address commands because the QSPI controller supports only 3-byte address commands.
 
 Further changes:
 - QSPI
@@ -179,3 +183,5 @@ Depending on the device and its speed grade, a different maximum CPU frequency r
 [    5.340367] cpu cpu0: dev_pm_opp_set_rate: failed to find current OPP for freq 1333333320 (-34)
 ```
 For more information about CPU frequency scaling please visit the [Xilinx wiki entry](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841831/CPU+frequency+scaling).
+
+[UG1144]: (https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1144-petalinux-tools-reference-guide.pdf)

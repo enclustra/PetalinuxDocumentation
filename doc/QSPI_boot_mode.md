@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-- Supported Linux OS for Petalinux 2020.1
-- Petalinux 2020.1 installation and all required packages (for more details please refer to https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_1/ug1144-petalinux-tools-reference-guide.pdf)
+- Supported Linux OS for Petalinux 2020.2
+- Petalinux 2020.2 installation and all required packages (for more details please refer to [UG1144])
 - Reference Design documentation for the hardware combination in use (module and baseboard combination)
 
 ## Adjusting project for QSPI boot mode
@@ -37,7 +37,7 @@ The equipped QSPI flash on Enclustra modules is typically 64 MBytes large. If th
 
 ## Program QSPI flash
 
-Please refer to the reference design documentation for your module and baseboard configuration to see the various methods of programming the QSPI flash memory. Additionally, Xilinx UG1144 provides information for using tftpboot for programming the QSPI flash.
+Please refer to the reference design documentation for your module and baseboard configuration to see the various methods of programming the QSPI flash memory. Additionally, Xilinx [UG1144] provides information for using tftpboot for programming the QSPI flash.
 
 As an example Vivado is used below, which has some additional steps:
 1. Files needed for programming:
@@ -61,3 +61,4 @@ program_flash -f BOOT.BIN $default_parameter
 program_flash -f boot.scr -offset 0x1f80000 $default_parameter
 program_flash -f image.ub -offset 0x2000000 $default_parameter
 ```
+[UG1144]: https://www.xilinx.com/support/documentation/sw_manuals/xilinx2020_2/ug1144-petalinux-tools-reference-guide.pdf
