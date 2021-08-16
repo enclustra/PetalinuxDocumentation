@@ -15,6 +15,7 @@ Enlustra GmbH [support@enclustra.com]
 * [QSPI boot mode adjustments to Petalinux](doc/QSPI_boot_mode.md)
 * [NAND boot mode adjustments to Petalinux](doc/NAND_boot_mode.md)
 * [SD boot mode adjustments to Petalinux](doc/SD_boot_mode.md)
+* [Known issues](doc/Known_issues.md)
 
 ## Changelog
 See [Changelog](changelog.md).
