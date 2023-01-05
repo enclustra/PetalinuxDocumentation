@@ -1,20 +1,64 @@
---- u-boot-xlnx/common/board_r.c
-+++ xilinx-uboot/common/board_r.c
-@@ -805,6 +805,12 @@
- #ifdef CONFIG_BOARD_LATE_INIT
- 	board_late_init,
- #endif
-+#ifdef CONFIG_ENCLUSTRA_QSPI_FLASHMAP
-+	enclustra_board,
-+#endif
-+#ifdef CONFIG_ENCLUSTRA_EEPROM_MAC
-+	enclustra_common,
-+#endif
- #if defined(CONFIG_SCSI) && !defined(CONFIG_DM_SCSI)
- 	INIT_FUNC_WATCHDOG_RESET
- 	initr_scsi,
---- u-boot-xlnx/board/xilinx/common/enclustra.c
-+++ xilinx-uboot/board/xilinx/common/enclustra.c
+From 40229235053198bebbc04d90b3ebfa7b5b96879a Mon Sep 17 00:00:00 2001
+From: Enclustra <support@enclustra.com>
+Date: Thu, 22 Sep 2022 09:16:15 +0200
+Subject: [PATCH] zynq_board
+
+Enclustra zynq_board patch
+
+%% original patch: zynq_board.patch
+---
+ board/xilinx/Kconfig             |  17 +++-
+ board/xilinx/common/enclustra.c  |  94 ++++++++++++++++++++
+ board/xilinx/zynq/Makefile       |   2 +
+ board/xilinx/zynq/board_mux.c    | 147 +++++++++++++++++++++++++++++++
+ common/board_r.c                 |   6 ++
+ drivers/mtd/nand/raw/zynq_nand.c |   7 ++
+ drivers/spi/zynq_qspi.c          |  23 +++--
+ include/init.h                   |   2 +
+ 8 files changed, 289 insertions(+), 9 deletions(-)
+ create mode 100644 board/xilinx/common/enclustra.c
+ create mode 100644 board/xilinx/zynq/board_mux.c
+
+diff --git a/board/xilinx/Kconfig b/board/xilinx/Kconfig
+index 64507b5d84..955831096a 100644
+--- a/board/xilinx/Kconfig
++++ b/board/xilinx/Kconfig
+@@ -41,7 +41,7 @@ config XILINX_PS_INIT_FILE
+ endif
+ 
+ config XILINX_OF_BOARD_DTB_ADDR
+-	hex "Default DTB pickup address"
++	hex
+ 	default 0x1000 if ARCH_VERSAL
+ 	default 0x100000 if ARCH_ZYNQ || ARCH_ZYNQMP
+ 	depends on OF_BOARD || OF_SEPARATE
+@@ -57,6 +57,21 @@ config BOOT_SCRIPT_OFFSET
+ 	help
+ 	   Specifies distro boot script offset in NAND/QSPI/NOR flash.
+ 
++config ENCLUSTRA_EEPROM_MAC
++	bool "Enable support for reading MAC address from EEPROM"
++	help
++	  Enables MAC address readout from EEPROM
++
++config ENCLUSTRA_NANDMUX
++	bool "QSPI NAND multiplexer"
++	help
++	  Enables MIO multiplexer for Enclustra ZX modules
++
++config ENCLUSTRA_QSPI_FLASHMAP
++	bool "QSPI Flash Map"
++	help
++	  Includes device specific QSPI flash maps in the U-Boot environment
++
+ config ZYNQ_MAC_IN_EEPROM
+ 	bool "Reading MAC address from EEPROM"
+ 	help
+diff --git a/board/xilinx/common/enclustra.c b/board/xilinx/common/enclustra.c
+new file mode 100644
+index 0000000000..cfd6389af5
+--- /dev/null
++++ b/board/xilinx/common/enclustra.c
 @@ -0,0 +1,94 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -110,20 +154,24 @@
 +#endif
 +}
 +
---- u-boot-xlnx/board/xilinx/zynq/Makefile
-+++ xilinx-uboot/board/xilinx/zynq/Makefile
-@@ -5,6 +5,9 @@
+diff --git a/board/xilinx/zynq/Makefile b/board/xilinx/zynq/Makefile
+index 8566171589..960c5de2c0 100644
+--- a/board/xilinx/zynq/Makefile
++++ b/board/xilinx/zynq/Makefile
+@@ -4,6 +4,8 @@
+ # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  
  obj-y	:= board.o
- obj-y	+= ../common/board.o
 +obj-y	+= ../common/enclustra.o
 +obj-y   += board_mux.o
-+obj-$(CONFIG_BOARD_COSMOS_XZQ10) += board_cosmos.o
  
  ifneq ($(CONFIG_XILINX_PS_INIT_FILE),"")
  PS_INIT_FILE := $(shell cd $(srctree); readlink -f $(CONFIG_XILINX_PS_INIT_FILE))
---- u-boot-xlnx/board/xilinx/zynq/board_mux.c
-+++ xilinx-uboot/board/xilinx/zynq/board_mux.c
+diff --git a/board/xilinx/zynq/board_mux.c b/board/xilinx/zynq/board_mux.c
+new file mode 100644
+index 0000000000..d96a568944
+--- /dev/null
++++ b/board/xilinx/zynq/board_mux.c
 @@ -0,0 +1,147 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -255,7 +303,7 @@
 +}
 +#endif
 +
-+int zx_set_storage_cmd(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
++int zx_set_storage_cmd(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 +{
 +#ifdef CONFIG_ENCLUSTRA_NANDMUX
 +	if(argc != 2)
@@ -272,250 +320,28 @@
 +U_BOOT_CMD(zx_set_storage, 2, 0, zx_set_storage_cmd,
 +	"Set non volatile memory access",
 +	"<NAND|QSPI> - Set access for the selected memory device");
-\ No newline at end of file
---- u-boot-xlnx/board/xilinx/zynq/board_cosmos.c
-+++ xilinx-uboot/board/xilinx/zynq/board_cosmos.c
-@@ -0,0 +1,221 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * (C) Copyright 2020 Enclustra GmbH
-+ */
-+ 
-+#include <common.h>
-+#include <command.h>
-+#include <i2c.h>
-+#include <zynqpl.h>
-+#include <asm/arch/hardware.h>
-+#include <asm/arch/sys_proto.h>
-+#include <asm/io.h>
-+
-+#ifndef CONFIG_SPL_BUILD
-+
-+#define MGT_DEVICES_NO 8
-+#define MGT_OUTPUT_NO  5
-+
-+#define MGT_I2C_MUX_ADDR 0x74
-+
-+#define MGT_IP1 (1 << 0)
-+#define MGT_IP2 (1 << 1)
-+#define MGT_IP3 (1 << 2)
-+#define MGT_IP4 (1 << 3)
-+#define MGT_IP5 (1 << 4)
-+#define MGT_IP6 (1 << 5)
-+#define MGT_IP7 (1 << 6)
-+#define MGT_IP8 (1 << 7)
-+
-+#define MGT_CROSS_DISABLED 0
-+#define MGT_CROSS_ENABLED  1
-+
-+#define MGT_SYS_CTRL    0x01
-+#define MGT_CROSS5_CTRL 0x07
-+#define MGT_SW_CTRL     0x08
-+
-+#define MGT_PASS  0
-+#define MGT_CROSS 1
-+
-+#define MGT_SWITCH_EN (1 << 7)
-+
-+static const struct {
-+	uint8_t i2c_mux_port;
-+	uint8_t i2c_addr;
-+} mgt_devices[MGT_DEVICES_NO] = {
-+	{
-+		.i2c_mux_port = 0,
-+		.i2c_addr = 0x30,
-+	},
-+	{
-+		.i2c_mux_port = 0,
-+		.i2c_addr = 0x32,
-+	},
-+	{
-+		.i2c_mux_port = 0,
-+		.i2c_addr = 0x34,
-+	},
-+	{
-+		.i2c_mux_port = 0,
-+		.i2c_addr = 0x36,
-+	},
-+	{
-+		.i2c_mux_port = 1,
-+		.i2c_addr = 0x30,
-+	},
-+	{
-+		.i2c_mux_port = 1,
-+		.i2c_addr = 0x32,
-+	},
-+	{
-+		.i2c_mux_port = 1,
-+		.i2c_addr = 0x34,
-+	},
-+	{
-+		.i2c_mux_port = 1,
-+		.i2c_addr = 0x36,
-+	},
-+};
-+
-+static const struct {
-+	uint8_t inputs;
-+	uint8_t cross;
-+} mgt_outputs[MGT_OUTPUT_NO] = {
-+	{
-+		.inputs = MGT_IP1 | MGT_IP2 | MGT_IP3,
-+		.cross  = MGT_CROSS_DISABLED,
-+	},
-+	{
-+		.inputs = MGT_IP1 | MGT_IP2 | MGT_IP3,
-+		.cross  = MGT_CROSS_DISABLED,
-+	},
-+	{
-+		.inputs = MGT_IP4 | MGT_IP5 | MGT_IP6,
-+		.cross  = MGT_CROSS_DISABLED,
-+	},
-+	{
-+		.inputs = MGT_IP4 | MGT_IP5 | MGT_IP6,
-+		.cross  = MGT_CROSS_DISABLED,
-+	},
-+	{
-+		.inputs = MGT_IP7 | MGT_IP8,
-+		.cross  = MGT_CROSS_ENABLED,
-+	},
-+};
-+
-+static int mgt_set_routing(uint8_t mgt_dev, uint8_t mgt_input,
-+		uint8_t mgt_output, uint8_t cross)
-+{
-+	uint8_t i2c_buf;
-+	struct udevice *mux, *dev;
-+
-+	if (mgt_dev > ARRAY_SIZE(mgt_devices)) {
-+		printf("Error: Wrong MGT device\n");
-+		return CMD_RET_FAILURE;
-+	}
-+
-+	if (mgt_output > ARRAY_SIZE(mgt_outputs)) {
-+		printf("Error: Wrong MGT output\n");
-+		return CMD_RET_FAILURE;
-+	}
-+
-+	if (!((1 << (mgt_input - 1)) & mgt_outputs[mgt_output - 1].inputs)) {
-+		printf("Error: Wrong MGT input\n");
-+		return CMD_RET_FAILURE;
-+	}
-+
-+	if (cross && mgt_outputs[mgt_output - 1].cross == MGT_CROSS_DISABLED) {
-+		printf("Error: This output does not support cross connection\n");
-+		return CMD_RET_FAILURE;
-+	}
-+
-+	if (i2c_get_chip_for_busnum(0, MGT_I2C_MUX_ADDR, 0, &mux)) {
-+		printf("Cannot find MUX on the I2C bus\n");
-+		return CMD_RET_FAILURE;
-+	}
-+
-+	if (i2c_get_chip_for_busnum(0, mgt_devices[mgt_dev].i2c_addr, 1,
-+				    &dev)) {
-+		printf("Cannot find MGT device on the I2C bus\n");
-+		return CMD_RET_FAILURE;
-+	}
-+
-+	/* Configure I2C MUX to appropriate port */
-+	i2c_buf = 0x08 | mgt_devices[mgt_dev].i2c_mux_port;
-+	dm_i2c_write(mux, 0, &i2c_buf, 1);
-+
-+	/* Write 1 to SWITCH_EN bit to ensure device is active */
-+	i2c_buf = MGT_SWITCH_EN;
-+	dm_i2c_write(dev, MGT_SYS_CTRL, &i2c_buf, 1);
-+
-+	/* Configure MGT mux port */
-+	i2c_buf = (1 << (mgt_input - 1));
-+	dm_i2c_write(dev, mgt_output + 1, &i2c_buf, 1);
-+
-+	/* Configure cross connection in case of output 5 */
-+	if (mgt_outputs[mgt_output - 1].cross == MGT_CROSS_ENABLED) {
-+		if (cross) {
-+			i2c_buf = (1 << MGT_CROSS);
-+			dm_i2c_write(dev, MGT_CROSS5_CTRL, &i2c_buf, 1);
-+		} else {
-+			i2c_buf = (1 << MGT_PASS);
-+			dm_i2c_write(dev, MGT_CROSS5_CTRL, &i2c_buf, 1);
-+		}
-+	}
-+
-+	/* Enable configuration registers in SW_CTRL register */
-+	i2c_buf = (1 << (mgt_output - 1));
-+
-+	if (mgt_outputs[mgt_output - 1].cross == MGT_CROSS_ENABLED)
-+		i2c_buf |= (1 << 5);
-+
-+	if (dm_i2c_write(dev, MGT_SW_CTRL, &i2c_buf, 1)) {
-+		printf("Error: I2C write operation failed\n");
-+		return CMD_RET_FAILURE;
-+	}
-+
-+	return CMD_RET_SUCCESS;
-+}
-+
-+static int mgt_set_routing_cmd(cmd_tbl_t *cmdtp, int flag,
-+		int argc, char * const argv[])
-+{
-+	int mgt_dev = 0, mgt_input = 0, mgt_output = 0, cross = 0;
-+	char *endp;
-+
-+	if (argc != 4 && argc != 5)
-+		return CMD_RET_USAGE;
-+
-+	mgt_dev = simple_strtoul(argv[1], &endp, 10);
-+	if (endp == argv[1])
-+		return CMD_RET_USAGE;
-+
-+	mgt_input = simple_strtoul(argv[2], &endp, 10);
-+	if (endp == argv[2])
-+		return CMD_RET_USAGE;
-+
-+	mgt_output = simple_strtoul(argv[3], &endp, 10);
-+	if (endp == argv[3])
-+		return CMD_RET_USAGE;
-+
-+	if (argc == 5) {
-+		if (!strcmp(argv[4], "-x"))
-+			cross = 1;
-+		else
-+			return CMD_RET_USAGE;
-+	}
-+
-+	return mgt_set_routing((uint8_t)mgt_dev, (uint8_t)mgt_input,
-+			(uint8_t)mgt_output, (uint8_t)cross);
-+}
-+
-+U_BOOT_CMD(mgt_set_routing, 5, 0, mgt_set_routing_cmd,
-+	   "Set signal routing in CBTL08GP053 MGT multiplexer",
-+	   "mgt_set_routing device input output [-x] - Configure device number $dev\n"
-+	   "                                   to connect $input to $output. If -x\n"
-+	   "                                   is specified, set the connection to\n"
-+	   "                                   crossed mode (only output no 5 has\n"
-+	   "                                   support for this functionality)");
-+
+diff --git a/common/board_r.c b/common/board_r.c
+index 31a59c585a..946ee00009 100644
+--- a/common/board_r.c
++++ b/common/board_r.c
+@@ -767,6 +767,12 @@ static init_fnc_t init_sequence_r[] = {
+ #ifdef CONFIG_BOARD_LATE_INIT
+ 	board_late_init,
+ #endif
++#ifdef CONFIG_ENCLUSTRA_QSPI_FLASHMAP
++	enclustra_board,
 +#endif
-+
---- u-boot-xlnx/board/xilinx/Kconfig
-+++ xilinx-uboot/board/xilinx/Kconfig
-@@ -63,3 +63,13 @@
- 	default 0x7F80000 if ARCH_VERSAL
- 	help
- 	   Specifies distro boot script offset in NAND/NOR flash.
-+
-+config ENCLUSTRA_EEPROM_MAC
-+	bool "Enable support for reading MAC address from EEPROM"
-+	help
-+	  Enables MAC address readout from EEPROM
-+
-+config ENCLUSTRA_NANDMUX
-+	bool "QSPI NAND multiplexer"
-+	help
-+	  Enables MIO multiplexer for Enclustra ZX modules
---- u-boot-xlnx/drivers/mtd/nand/raw/zynq_nand.c
-+++ xilinx-uboot/drivers/mtd/nand/raw/zynq_nand.c
-@@ -1066,6 +1066,10 @@
++#ifdef CONFIG_ENCLUSTRA_EEPROM_MAC
++	enclustra_common,
++#endif
+ #if defined(CONFIG_SCSI) && !defined(CONFIG_DM_SCSI)
+ 	INIT_FUNC_WATCHDOG_RESET
+ 	initr_scsi,
+diff --git a/drivers/mtd/nand/raw/zynq_nand.c b/drivers/mtd/nand/raw/zynq_nand.c
+index 10e9cd18b0..1440013c42 100644
+--- a/drivers/mtd/nand/raw/zynq_nand.c
++++ b/drivers/mtd/nand/raw/zynq_nand.c
+@@ -1068,6 +1068,10 @@ static int zynq_nand_check_is_16bit_bw_flash(void)
  	return is_16bit_bw;
  }
  
@@ -526,9 +352,9 @@
  static int zynq_nand_probe(struct udevice *dev)
  {
  	struct zynq_nand_info *zynq = dev_get_priv(dev);
-@@ -1089,6 +1093,9 @@
- 		printf("Failed to find nand node in dt\n");
- 		return -ENODEV;
+@@ -1094,6 +1098,9 @@ static int zynq_nand_probe(struct udevice *dev)
+ 			return -ENODEV;
+ 		}
  	}
 +#ifdef CONFIG_ENCLUSTRA_NANDMUX
 +        zx_set_storage("NAND");
@@ -536,9 +362,22 @@
  
  	if (!ofnode_is_available(of_nand)) {
  		debug("Nand node in dt disabled\n");
---- u-boot-xlnx/drivers/spi/zynq_qspi.c
-+++ xilinx-uboot/drivers/spi/zynq_qspi.c
-@@ -292,6 +292,10 @@
+diff --git a/drivers/spi/zynq_qspi.c b/drivers/spi/zynq_qspi.c
+index c627c9833e..d1339c935f 100644
+--- a/drivers/spi/zynq_qspi.c
++++ b/drivers/spi/zynq_qspi.c
+@@ -69,7 +69,9 @@ DECLARE_GLOBAL_DATA_PTR;
+ #define ZYNQ_QSPI_DEFAULT_BAUD_RATE	0x2
+ 
+ #define ZYNQ_QSPI_FIFO_DEPTH		63
+-#define ZYNQ_QSPI_WAIT			(CONFIG_SYS_HZ / 100)	/* 10 ms */
++#ifndef CONFIG_SYS_ZYNQ_QSPI_WAIT
++#define CONFIG_SYS_ZYNQ_QSPI_WAIT	CONFIG_SYS_HZ/100	/* 10 ms */
++#endif
+ 
+ /* zynq qspi register set */
+ struct zynq_qspi_regs {
+@@ -296,6 +298,10 @@ static int zynq_qspi_child_pre_probe(struct udevice *bus)
  	return 0;
  }
  
@@ -548,8 +387,8 @@
 +
  static int zynq_qspi_probe(struct udevice *bus)
  {
- 	struct zynq_qspi_platdata *plat = dev_get_platdata(bus);
-@@ -300,6 +304,10 @@
+ 	struct zynq_qspi_plat *plat = dev_get_plat(bus);
+@@ -304,6 +310,10 @@ static int zynq_qspi_probe(struct udevice *bus)
  	unsigned long clock;
  	int ret;
  
@@ -560,3 +399,51 @@
  	priv->regs = plat->regs;
  	priv->fifo_depth = ZYNQ_QSPI_FIFO_DEPTH;
  	priv->is_dual = plat->is_dual;
+@@ -481,8 +491,8 @@ static void zynq_qspi_fill_tx_fifo(struct zynq_qspi_priv *priv, u32 size)
+ 	unsigned len, offset;
+ 	struct zynq_qspi_regs *regs = priv->regs;
+ 	static const unsigned offsets[4] = {
+-		ZYNQ_QSPI_TXD_00_01_OFFSET, ZYNQ_QSPI_TXD_00_10_OFFSET,
+-		ZYNQ_QSPI_TXD_00_11_OFFSET, ZYNQ_QSPI_TXD_00_00_OFFSET };
++		ZYNQ_QSPI_TXD_00_00_OFFSET, ZYNQ_QSPI_TXD_00_01_OFFSET,
++		ZYNQ_QSPI_TXD_00_10_OFFSET, ZYNQ_QSPI_TXD_00_11_OFFSET };
+ 
+ 	while ((fifocount < size) &&
+ 			(priv->bytes_to_transfer > 0)) {
+@@ -504,10 +514,7 @@ static void zynq_qspi_fill_tx_fifo(struct zynq_qspi_priv *priv, u32 size)
+ 				return;
+ 			len = priv->bytes_to_transfer;
+ 			zynq_qspi_write_data(priv, &data, len);
+-			if (priv->is_dual && !priv->is_inst && (len % 2))
+-				len++;
+-			offset = (priv->rx_buf) ?
+-				  offsets[3] : offsets[len - 1];
++			offset = (priv->rx_buf) ? offsets[0] : offsets[len];
+ 			writel(data, &regs->cr + (offset / 4));
+ 		}
+ 	}
+@@ -539,7 +546,7 @@ static int zynq_qspi_irq_poll(struct zynq_qspi_priv *priv)
+ 	do {
+ 		status = readl(&regs->isr);
+ 	} while ((status == 0) &&
+-		(get_timer(timeout) < ZYNQ_QSPI_WAIT));
++		(get_timer(timeout) < CONFIG_SYS_ZYNQ_QSPI_WAIT));
+ 
+ 	if (status == 0) {
+ 		printf("zynq_qspi_irq_poll: Timeout!\n");
+diff --git a/include/init.h b/include/init.h
+index f2cd46dead..10ab1501af 100644
+--- a/include/init.h
++++ b/include/init.h
+@@ -294,6 +294,8 @@ int board_early_init_f(void);
+ /* manipulate the U-Boot fdt before its relocation */
+ int board_fix_fdt(void *rw_fdt_blob);
+ int board_late_init(void);
++int enclustra_board(void);
++int enclustra_common(void);
+ int board_postclk_init(void); /* after clocks/timebase, before env/serial */
+ int board_early_init_r(void);
+ 
+-- 
+2.25.1
+

@@ -1,0 +1,22 @@
+From 3d01f14e610703f559a834d620803a0c1ba3bc02 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Tobias=20V=C3=B6geli?= <tobias.voegeli@enclustra.com>
+Date: Wed, 19 Oct 2022 08:49:12 +0200
+Subject: [PATCH] Xilinx PHY
+
+In case the Xilinx device-tree entry is missing, try the normal way to configure the phy instead of writing an error.
+---
+ drivers/net/phy/ethernet_id.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/net/phy/ethernet_id.c b/drivers/net/phy/ethernet_id.c
+index 44abc5bfb3..22841b7e8d 100644
+--- a/drivers/net/phy/ethernet_id.c
++++ b/drivers/net/phy/ethernet_id.c
+@@ -33,7 +33,6 @@ struct phy_device *phy_connect_phy_id(struct mii_dev *bus, struct udevice *dev,
+ 
+ 	ret = ofnode_read_eth_phy_id(node, &vendor, &device);
+ 	if (ret) {
+-		dev_err(dev, "Failed to read eth PHY id, err: %d\n", ret);
+ 		return NULL;
+ 	}
+ 

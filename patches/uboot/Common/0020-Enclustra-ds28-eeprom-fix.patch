@@ -1,0 +1,85 @@
+From bbe0832630d336e417fd90cc5b99d7a643623173 Mon Sep 17 00:00:00 2001
+From: Lothar Rubusch <lothar.rubusch@enclustra.com>
+Date: Wed, 28 Sep 2022 10:02:06 +0000
+Subject: [PATCH] eeprom: fix Enclustra boards with ds28 EEPROM
+
+Signed-off-by: Lothar Rubusch <lothar.rubusch@enclustra.com>
+---
+ drivers/misc/eeprom-mac.c      | 36 ++++++++++++++++++++++++++++++++++
+ include/enclustra/eeprom-mac.h |  3 +++
+ 2 files changed, 39 insertions(+)
+
+diff --git a/drivers/misc/eeprom-mac.c b/drivers/misc/eeprom-mac.c
+index d27865297d..60ba09a0be 100644
+--- a/drivers/misc/eeprom-mac.c
++++ b/drivers/misc/eeprom-mac.c
+@@ -5,6 +5,26 @@
+ #include <enclustra/eeprom-mac.h>
+ #include <atsha204a-i2c.h>
+ 
++static int i2c_get_device(uint chip_addr, int alen, struct udevice **devp)
++{
++	struct dm_i2c_chip *chip;
++	int ret;
++
++	ret = i2c_get_chip_for_busnum(DS28_SYS_I2C_EEPROM_BUS, chip_addr,
++			alen, devp);
++	if (ret)
++		return ret;
++
++	chip = dev_get_parent_plat(*devp);
++	if (chip->offset_len != alen) {
++		printf("I2C chip %x: requested alen %d does not match chip "
++			"offset_len %d\n", chip_addr, alen, chip->offset_len);
++		return -EADDRNOTAVAIL;
++	}
++
++	return 0;
++}
++
+ static struct udevice *get_atsha204a_dev(void)
+ {
+ 	static struct udevice *dev;
+@@ -17,6 +37,22 @@ static struct udevice *get_atsha204a_dev(void)
+ 	return dev;
+ }
+ 
++int ds28_get_mac(u8 *buffer)
++{
++	int ret;
++	struct udevice *dev;
++
++	ret = i2c_get_device(DS28_I2C_ADDR, 1, &dev);
++	if (ret != 0)
++		return ret;
++
++	return dm_i2c_read(dev,
++			0x10,
++			buffer,
++			6);
++}
++EXPORT_SYMBOL_GPL(ds28_get_mac);
++
+ int atsha204_get_mac(u8 *buffer)
+ {
+ 	int ret;
+diff --git a/include/enclustra/eeprom-mac.h b/include/enclustra/eeprom-mac.h
+index 3ec69ca3a3..2f937bd3f0 100644
+--- a/include/enclustra/eeprom-mac.h
++++ b/include/enclustra/eeprom-mac.h
+@@ -3,9 +3,12 @@
+  * (C) Copyright 2021 Enclustra GmbH
+  * <info@enclustra.com>
+  */
++#define DS28_I2C_ADDR 0x5C
++#define DS28_SYS_I2C_EEPROM_BUS 0
+ 
+ struct eeprom_mem {
+     int (*mac_reader)(u8 *buffer);
+ };
+ 
++int ds28_get_mac(u8 *buffer);
+ int atsha204_get_mac(u8 *buffer);
+-- 
+2.25.1
+
