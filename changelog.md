@@ -1,3 +1,6 @@
+## 2022.1_v1.0.1
+* Add support for Mercury XU61 module
+
 ## 2022.1_v1.0.0
 * Update for Petalinux 2022.1
 * Add support for Mercury PE3 baseboard
