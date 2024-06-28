@@ -156,15 +156,16 @@ The following patches are added to the default Petalinux u-boot:
 | [0050-Xilinx-PHY.patch](../patches/uboot/Common/0050-Xilinx-PHY.patch)                                                               | In case the Xilinx device-tree entry is missing, try the normal way to configure the phy instead of writing an error                            |
 
 Changes for MPSoC modules (XU*):
-| Patch                                                                                                     | Functionality                                                        |
-|-----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| [0010-Enclustra-Zynqmp-Board-Patch.patch](../patches/uboot/MPSoC/0010-Enclustra-Zynqmp-Board-Patch.patch) | - Read and set MAC address <br> - U-boot command to read mac-address |
-| [0060-env-qspi-boot-avoid-ubifs.patch](../patches/uboot/MPSoC/0060-env-qspi-boot-avoid-ubifs.patch)       | Revert to old boot flow just sourcing a u-boot script                |
+| Patch                                                                                                                      | Functionality                                                                                    |
+|----------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| [0010-Enclustra-Zynqmp-Board-Patch.patch](../patches/uboot/zynqMP/0010-Enclustra-Zynqmp-Board-Patch.patch)                 | - Read and set MAC address <br> - U-boot command to read mac-address                             |
+| [0060-env-qspi-boot-avoid-ubifs.patch](../patches/uboot/zynqMP/0060-env-qspi-boot-avoid-ubifs.patch)                       | Revert to old boot flow just sourcing a u-boot script                                            |
+| [0070-Change-u-boot-script-load-address.patch](../patches/uboot/zynqMP/0070-Change-u-boot-script-load-address.patch)       | Load u-boot script at lower address to support devices with smaller PS DDR memory                |
 
 Changes for SoC modules (ZX*):
 | Patch                                                                                                     | Functionality                                                        |
 |-----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| [0010-Enclustra-Zynq-Board-Patch.patch](../patches/uboot/SoC/0010-Enclustra-Zynq-Board-Patch.patch)       | - Read and set MAC address <br> - U-boot command to read mac-address <br> - U-boot command to switch MIO pins between NAND and QSPI|
+| [0010-Enclustra-Zynq-Board-Patch.patch](../patches/uboot/zynq/0010-Enclustra-Zynq-Board-Patch.patch)      | - Read and set MAC address <br> - U-boot command to read mac-address <br> - U-boot command to switch MIO pins between NAND and QSPI|
 
 Further changes:
 - The changes to the default u-boot configuration are located in:

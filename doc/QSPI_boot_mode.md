@@ -13,13 +13,13 @@ The equipped QSPI flash on Enclustra modules is typically 64 MBytes large. If th
 - Run `petalinux-config`
 - Under `Subsystem AUTO Hardware settings:`
     - `Flash Settings`: create all partitions as needed, e. g.
-        | partition name | partition size  | partition size in MB |
-        |----------------|-----------------|----------------------|
-        | boot           | 0x1f00000       | 31                   |
-        | bootenv        | 0x80000         | 0.5                  |
-        | bootscr        | 0x80000         | 0.5                  |
-        | kernel         | 0x1000000       | 16                   |
-        | rootfs.jffs2   | 0x1000000       | 16                   |
+        | partition name | partition offset | partition size  | partition size in MB |
+        |----------------|------------------|-----------------|----------------------|
+        | boot           | 0x0              | 0x1f00000       | 31                   |
+        | bootenv        | 0x1f00000        | 0x80000         | 0.5                  |
+        | bootscr        | 0x1f80000        | 0x80000         | 0.5                  |
+        | kernel         | 0x2000000        | 0x1000000       | 16                   |
+        | rootfs.jffs2   | 0x3000000        | 0x1000000       | 16                   |
     - Under `Advanced bootable images storage Settings`:
         - `boot image settings -> images storage media`: set to `primary flash`
         - `kernel image settings -> image storage media`: set to `primary flash`
