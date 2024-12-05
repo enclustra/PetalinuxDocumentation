@@ -7,6 +7,7 @@ All variants and revisions of the following modules are affected:
 - Mercury+ XU1
 - Mercury XU5
 - Mercury+ XU6
+- Mercury+ XU61
 - Mercury+ XU7
 - Mercury+ XU8
 - Mercury+ XU9
@@ -16,3 +17,18 @@ USB PHY 0 is enabled by default in all reference designs and Linux BSPs but it c
 
 ### Workaround
 If USB is required, the Vivado design and Linux devicetree need to be modified to enable USB PHY 1. On some modules USB PHY 1 and ETH 1 share the same MIO pins and therefore, ETH 1 is not available when using USB 1.
+
+## 2. USB initialization problems with Zynq 7000 modules
+
+### Affected modules:
+All variants and revisions of the following modules are affected:
+- Mercury ZX1
+- Mercury ZX5
+- Mars ZX2
+- Mars ZX3
+
+### Description
+There is no dedicated reset for the USB PHY. This can result in failures to initialize the USB interface.
+
+### Workaround
+An FSBL patch can be added to the Petalinux project as desribed in this [forum thread](https://adaptivesupport.amd.com/s/question/0D52E00006hpYs7SAE/144-usb-not-working-any-more?language=en_US).

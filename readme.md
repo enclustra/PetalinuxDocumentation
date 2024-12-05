@@ -4,11 +4,7 @@
 Enclustra GmbH [support@enclustra.com]
 
 ## Authors
-* Gian Koeppel
-* Andreas Buerkler
-* Arthur Ruder
-* Tobias Voegeli
-* Lothar Rubusch
+* Enclustra GmbH
 
 ## Documentation
 * [BSP usage documentation](doc/BSP.md)
@@ -23,11 +19,11 @@ See [Changelog](changelog.md).
 
 ## Description
 This repository provides the necessary documentation for all Enclustra Petalinux BSPs.
-> **_NOTE:_** **The BSPs are found in the respective release of the reference design repositories, e.g.** [Mercury XU5 PE1 release 2022.1_v1.2.1](https://github.com/enclustra/Mercury_XU5_PE1_Reference_Design/releases/tag/2022.1_v1.2.1).
+> **_NOTE:_** **The BSPs are found in the respective release of the reference design repositories, e.g.** [Mercury XU5 PE1 release 2024.1_v1.2.2](https://github.com/enclustra/Mercury_XU5_PE1_Reference_Design/releases/tag/2024.1_v1.2.2).
 
 ## Links to reference designs
 
-> **_NOTE:_**  Please note that the reference designs have folders called `petalinux` in their respective repository. The folder contains the unpacked BSPs that are found in the release page of the repository. The reason behind this is to make the changes in the BSP visible via the commit history of the repository without having to download, unpack and compare the BSP files between releases. That way, you can see which part changed and incorpoprate that change into your design if necessary.
+> **_NOTE:_**  The reference designs have folders called `petalinux` in their respective repository. The folder contains the unpacked BSPs that are found in the release page of the repository.
 
 ### Andromeda
 * [Andromeda_XZU65_ST1_Reference_Design](https://github.com/enclustra/Andromeda_XZU65_ST1_Reference_Design)

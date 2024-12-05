@@ -2,43 +2,19 @@
 
 ## Prerequisites
 
-- Supported Linux OS for Petalinux 2022.1
-- Petalinux 2022.1 installation and all required packages (for more details please refer to [UG1144])
+- Supported Linux OS for Petalinux 2024.1 (refer to  [UG1144])
+- All required packages as listed in the [Petalinux 2024.1 Release Notes](https://adaptivesupport.amd.com/s/article/000036178?language=en_US)
+- Petalinux 2024.1 installation (refer to  [UG1144])
 - Reference Design documentation for the hardware combination in use (module and baseboard combination)
+- Successful Petalinux build as described in the [BSP usage documentation](BSP.md)
 
+## Preparing an SD card for booting
+Follow these steps to build the SD card image:
+1. Create the `BOOT.BIN` as described in the [BSP usage documentation](BSP.md).
+2. Use the `petalinux-package wic` command to create an SD card image. The default image will be created in **PETALINUX_PROJECT_FOLDER -> images -> linux -> petalinux-sdimage.wic** with a size of 6GB. It is possible to change the generated image size by passing arguments via the `--wks` flag. Refer to [UG1144] for details.
+3. Write the `petalinux-sdimage.wic` image to an SD card.
 
-## Create an SD Card with the boot images
+## Booting from SD Card
+Boot from the SD card as described in the respective reference design documentation (Section **"Booting from the SD Card"**) using the default credentials **Username: root, Password: root**.
 
-The Petalinux tools reference guide (UG1144) from Xilinx describes how to create an SD card to boot from. This is a short description of the required steps to create a bootable SD card.
-
-- Files needed for SD boot: (files are in PETALINUX_PROJECT_FOLDER -> images -> linux)
-    - BOOT.BIN
-    - boot.scr
-    - system.dtb
-    - Image
-    - rootfs.tar.gz
-- Create two partitions on the SD Card. The first partition is **FAT32** formated, the second **EXT4**. UG1144 descibes how to create these partitions.
-- Copy the files **BOOT.BIN, boot.scr, system.dtb and Image** to the first (FAT32) partition.
-- Extract the file **rootfs.tar.gz** to the second partition: 'tar -xvf rootfs.tar.gz -C /path/to/second/partition'
-- Unmount all partitions and remove the SD card.
-
-
-
-## Boot from SD Card
-
-- Prepare the module and baseboard for SD boot mode
-
-A detailed description of this step can be found in the reference design documentation.
-
-    - Mount the module on the baseboard and set the DIP switches correctly.
-
-- Boot from the SD card.
-
-A detailed description of these steps can be found in the reference design documentation.
-
-    - Insert the SD card.
-    - Plug in the USB cable and connect a serial terminal.
-    - Plug in the power jack.
-    - The serial terminal shows the log of the booting U-Boot and Linux. The default login for a Petalinux project is: **Username: root, Password: root**
-
-[UG1144]: https://www.xilinx.com/support/documentation/sw_manuals/xilinx2022_1/ug1144-petalinux-tools-reference-guide.pdf
+[UG1144]: https://docs.amd.com/viewer/book-attachment/MVyApcmU3R9Mm97zSMBTWg/A1uhF~YnkvK0u6G775Tu_Q
