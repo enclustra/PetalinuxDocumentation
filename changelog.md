@@ -2,6 +2,7 @@
 * Update for Petalinux 2024.1
 * Use the meta-enclustra layer to add support for Enclustra hardware
 * Provide BSPs for eMMC boot mode
+* Remove support for EOL products: Mars EB1, Mars PM3
 
 ## 2022.1_v1.0.1
 * Add support for Mercury XU61 module
