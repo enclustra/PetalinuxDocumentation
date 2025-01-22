@@ -1,3 +1,6 @@
+## 2024.1_v1.0.1
+* Known issues section updated
+
 ## 2024.1_v1.0.0
 * Update for Petalinux 2024.1
 * Use the meta-enclustra layer to add support for Enclustra hardware

@@ -32,3 +32,19 @@ There is no dedicated reset for the USB PHY. This can result in failures to init
 
 ### Workaround
 An FSBL patch can be added to the Petalinux project as desribed in this [forum thread](https://adaptivesupport.amd.com/s/question/0D52E00006hpYs7SAE/144-usb-not-working-any-more?language=en_US).
+
+## 3. U-Boot gets stuck while booting on modules with DS28 EEPROM
+
+### Affected modules:
+All revisions of modules equipped with a DS28 EEPROM are affected in combination with BSP files of release 2024.1:
+- Mercury ZX1 R1
+- Mercury ZX5 R1, R2
+- Mars ZX3 R1 -R6
+
+### Description
+Because modules can have two different types of EEPROM devices, U-Boot always tries to read the MAC address from the atsha204a device as a first attempt.
+If that is not successful, a second attemp is started to read the MAC address from the DS28 EEPROM.
+The problem is that the atsha204a driver hangs in the wakeup sequence when the device does not answer to an I2C read request.
+
+### Workaround
+The U-Boot patch for the atsha204a driver needs to be replaced as described in following issue: https://github.com/enclustra/Mercury_ZX5_PE1_Reference_Design/issues/1 .
