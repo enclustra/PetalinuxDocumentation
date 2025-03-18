@@ -355,4 +355,4 @@ CONFIG_iperf3=y
 CONFIG_usbutils=y
 ```
 
-[UG1144]: <https://docs.amd.com/viewer/book-attachment/MVyApcmU3R9Mm97zSMBTWg/A1uhF~YnkvK0u6G775Tu_Q>
+[UG1144]: <https://docs.amd.com/r/2024.1-English/ug1144-petalinux-tools-reference-guide/Overview>
