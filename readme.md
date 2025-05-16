@@ -27,6 +27,9 @@ This repository provides the necessary documentation for all Enclustra Petalinux
 
 ### Andromeda
 * [Andromeda_XZU65_ST1_Reference_Design](https://github.com/enclustra/Andromeda_XZU65_ST1_Reference_Design)
+* [Andromeda_XZU65_PE5_Reference_Design](https://github.com/enclustra/Andromeda_XZU65_PE5_Reference_Design)
+* [Andromeda_XZU80_PE5_Reference_Design](https://github.com/enclustra/Andromeda_XZU80_PE5_Reference_Design)
+* [Andromeda_XZU90_PE5_Reference_Design](https://github.com/enclustra/Andromeda_XZU90_PE5_Reference_Design)
 ### Mars
 * [Mars_XU3_ST3_Reference_Design](https://github.com/enclustra/Mars_XU3_ST3_Reference_Design)
 * [Mars_ZX2_ST3_Reference_Design](https://github.com/enclustra/Mars_ZX2_ST3_Reference_Design)

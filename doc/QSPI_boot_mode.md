@@ -10,7 +10,9 @@
 
 ## Petalinux QSPI boot mode adjustments
 
-The QSPI flash size on Enclustra modules is 64 MBytes. The only exception are Andromeda modules with a size of 128 MBytes. The Enclustra QSPI BSP files provided in the release section of each reference design repository use the following QSPI layout (the same layout is used for Andromeda modules for simplicity reasons):
+The QSPI flash size on Enclustra modules is 64 MBytes. The only exception are Andromeda modules with a size of 128 MBytes. The Enclustra BSPs are configured to use the following QSPI flash layout:
+
+For Mercury and Mars modules:
 
 | partition name | partition offset | partition size  | partition size in MB |
 |----------------|------------------|-----------------|----------------------|
@@ -18,6 +20,17 @@ The QSPI flash size on Enclustra modules is 64 MBytes. The only exception are An
 | bootenv        | 0x1f00000        | 0x80000         | 0.5                  |
 | bootscr        | 0x1f80000        | 0x80000         | 0.5                  |
 | kernel         | 0x2000000        | 0x2000000       | 32                   |
+
+For Andromeda modules:
+
+| partition name | partition offset | partition size  | partition size in MB |
+|----------------|------------------|-----------------|----------------------|
+| boot           | 0x0              | 0x3f00000       | 63                   |
+| bootenv        | 0x3f00000        | 0x80000         | 0.5                  |
+| bootscr        | 0x3f80000        | 0x80000         | 0.5                  |
+| kernel         | 0x4000000        | 0x4000000       | 64                   |
+
+Note: The QSPI flash layout for Andromeda_XZU65_ST1 was identical with the layout for Mercury and Mars modules in release 2024.1_v1.0.1 and earlier.
 
 The rootfs uses the non-persistent ramfs type and is packaged into the generated `image.ub` file. The necessary adjustments for the QSPI offsets and the fit image are set via the following variables in the Petalinux project configuration:
 

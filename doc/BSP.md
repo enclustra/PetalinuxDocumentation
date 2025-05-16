@@ -9,7 +9,6 @@
     2. [U-boot changes](#u-boot-changes)
     3. [Device-tree changes](#device-tree-changes)
     4. [Root file system changes](#root-file-system-changes)
-6. [CPU frequency](#cpu-frequency)
 
 ## Prerequisites
 
@@ -73,7 +72,10 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
         │   │   │       ├── refdes-xu9-pe1.conf
         │   │   │       ├── refdes-xu9-pe3.conf
         │   │   │       ├── refdes-xu9-st1.conf
+        │   │   │       ├── refdes-xzu65-pe5.conf
         │   │   │       ├── refdes-xzu65-st1.conf
+        │   │   │       ├── refdes-xzu80-pe5.conf
+        │   │   │       ├── refdes-xzu90-pe5.conf
         │   │   │       ├── refdes-zx1-pe1.conf
         │   │   │       ├── refdes-zx1-pe3.conf
         │   │   │       ├── refdes-zx1-st1.conf
@@ -143,7 +145,13 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
         │   │               │   └── system-user.dtsi
         │   │               ├── refdes-xu9-st1
         │   │               │   └── system-user.dtsi
+        │   │               ├── refdes-xzu65-pe5
+        │   │               │   └── system-user.dtsi
         │   │               ├── refdes-xzu65-st1
+        │   │               │   └── system-user.dtsi
+        │   │               ├── refdes-xzu80-pe5
+        │   │               │   └── system-user.dtsi
+        │   │               ├── refdes-xzu90-pe5
         │   │               │   └── system-user.dtsi
         │   │               ├── refdes-zx1-pe1
         │   │               │   └── system-user.dtsi
@@ -165,6 +173,9 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
         │       ├── conf
         │       │   ├── layer.conf
         │       │   └── machine
+        │       │       ├── andromeda-generic.conf
+        │       │       ├── mars-generic.conf
+        │       │       ├── mercury-generic.conf
         │       │       ├── xu1-module.conf
         │       │       ├── xu3-module.conf
         │       │       ├── xu5-module.conf
@@ -174,6 +185,8 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
         │       │       ├── xu8-module.conf
         │       │       ├── xu9-module.conf
         │       │       ├── xzu65-module.conf
+        │       │       ├── xzu80-module.conf
+        │       │       ├── xzu90-module.conf
         │       │       ├── zx1-module.conf
         │       │       ├── zx2-module.conf
         │       │       ├── zx3-module.conf
@@ -191,6 +204,8 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
         │       │   │       ├── zynq_enclustra_mercury_zx5.dtsi
         │       │   │       ├── zynq_enclustra_nand_parts.dtsi
         │       │   │       ├── zynqmp_enclustra_andromeda_xzu65.dtsi
+        │       │   │       ├── zynqmp_enclustra_andromeda_xzu80.dtsi
+        │       │   │       ├── zynqmp_enclustra_andromeda_xzu90.dtsi
         │       │   │       ├── zynqmp_enclustra_common.dtsi
         │       │   │       ├── zynqmp_enclustra_mars_xu3.dtsi
         │       │   │       ├── zynqmp_enclustra_mercury_xu1.dtsi
@@ -202,12 +217,18 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
         │       │   │       └── zynqmp_enclustra_mercury_xu9.dtsi
         │       │   └── u-boot
         │       │       ├── files
+        │       │       │   ├── andromeda
+        │       │       │   │   └── formfactor.cfg
         │       │       │   ├── common
         │       │       │   │   ├── 0008-Enclustra-MAC-address-readout-from-EEPROM.patch
         │       │       │   │   ├── 0012-Atsha204a-upstream-fixes.patch
         │       │       │   │   ├── 0020-Enclustra-ds28-eeprom-fix.patch
         │       │       │   │   ├── 0030-zynq-qspi.patch
         │       │       │   │   └── 0040-emmc.patch
+        │       │       │   ├── mars
+        │       │       │   │   └── formfactor.cfg
+        │       │       │   ├── mercury
+        │       │       │   │   └── formfactor.cfg
         │       │       │   ├── zynq
         │       │       │   │   ├── 0010-Enclustra-Zynq-Board-Patch.patch
         │       │       │   │   ├── 0011-Fix-zynq_qspi_fill_tx_fifo.patch
