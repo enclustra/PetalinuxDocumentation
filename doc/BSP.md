@@ -97,6 +97,7 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
         │   │               │   ├── zynq_enclustra_mercury_pe1.dtsi
         │   │               │   ├── zynq_enclustra_mercury_pe3.dtsi
         │   │               │   ├── zynq_enclustra_mercury_st1.dtsi
+        │   │               │   ├── zynqmp_enclustra_andromeda_pe5.dtsi
         │   │               │   ├── zynqmp_enclustra_mars_st3.dtsi
         │   │               │   ├── zynqmp_enclustra_mercury_pe1.dtsi
         │   │               │   ├── zynqmp_enclustra_mercury_pe3.dtsi
@@ -224,7 +225,8 @@ The provided **BSP** file follows the naming convention of `Petalinux_${MODULE_N
         │       │       │   │   ├── 0012-Atsha204a-upstream-fixes.patch
         │       │       │   │   ├── 0020-Enclustra-ds28-eeprom-fix.patch
         │       │       │   │   ├── 0030-zynq-qspi.patch
-        │       │       │   │   └── 0040-emmc.patch
+        │       │       │   │   ├── 0040-emmc.patch
+        │       │       │   │   └── 0050-update-ksz9131-driver.patch
         │       │       │   ├── mars
         │       │       │   │   └── formfactor.cfg
         │       │       │   ├── mercury
@@ -340,6 +342,7 @@ The following patches are added to the default Petalinux u-boot:
 | 0020-Enclustra-ds28-eeprom-fix.patch                 | Add support for DS28 EEPROM                                                      |
 | 0030-zynq-qspi.patch                                 | Fix read instruction for QSPI                                                    |
 | 0040-emmc.patch                                      | - Change initialization flow for eMMC ([origin](https://github.com/enclustra-bsp/xilinx-uboot/commit/cafd52079faed3db66809c3244a393995b14d5ce)) <br> - Get "max-frequency" from the device-tree <br> - Support card detect via gpio |
+| 0050-update-ksz9131-driver.patch                     | Update PHY driver to newer version to support RGMII delay configuration          |
 
 Changes for MPSoC modules (XU*):
 | Patch                                                | Functionality                                                                   |
