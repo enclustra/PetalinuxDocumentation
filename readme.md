@@ -1,5 +1,7 @@
 # Petalinux
 
+> **_DISCLAIMER:_** The Enclustra Petalinux BSP is deprecated. For reference design releases starting at 2024.2, the [Enclustra Yocto BSP layer](https://github.com/enclustra/meta-enclustra-amd) is provided instead.
+
 ## Maintainer
 Enclustra GmbH [support@enclustra.com]
 
